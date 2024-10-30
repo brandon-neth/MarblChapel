@@ -1,0 +1,1 @@
+void initArrays(double* arr1, double* arr2, int* size, double*val);
