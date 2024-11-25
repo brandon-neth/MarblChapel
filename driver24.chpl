@@ -15,7 +15,6 @@ extern record marbl_interop_type {
   }
 
   proc setSurfaceFluxForcingValues(const ref nz, const ref nt, ref tracerArray, const ref salinity: c_double, const ref temperature: c_double, const ref uwind: c_double, const ref vwind: c_double, const ref pressure: c_double, const ref pco2air: c_double, const ref pco2air_alt: c_double, const ref dust: c_double, const ref fe: c_double, const ref nox: c_double, const ref nhy: c_double) {
-    
     set_surface_flux_forcing_values(this, nz: c_int, nt: c_int, c_ptrTo(tracerArray), salinity: c_double, temperature: c_double, uwind: c_double, vwind: c_double, pressure: c_double, pco2air: c_double, pco2air_alt: c_double, dust: c_double, fe: c_double, nox: c_double, nhy: c_double);
   }
 

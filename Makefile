@@ -111,3 +111,35 @@ driver23.exe: driver23.f90
 driver24.exe: driver24.f90 driver24.h driver24.chpl
 	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver24.f90
 	chpl -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver24.o driver24.chpl -o $@
+
+
+driver25.exe: driver25.f90 driver25.h driver25.chpl
+	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver25.f90
+	chpl -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver25.o driver25.chpl -o $@
+
+driver26.exe: driver26.f90 driver26.h driver26.chpl
+	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver26.f90
+	chpl -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver26.o driver26.chpl -o $@
+
+
+driver27.exe: driver27.f90 driver27.h driver27.chpl
+	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver27.f90
+	chpl --fast -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver27.o driver27.chpl -o $@
+
+
+driver28.exe: driver28.f90 driver28.h driver28.chpl
+	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver28.f90
+	chpl --fast -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver28.o driver28.chpl -o $@
+
+driver29.exe: driver29.chpl
+	chpl --fast driver29.chpl -o $@
+	
+
+driver30.exe: driver30.f90 driver30.h driver30.chpl
+	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver30.f90
+	chpl --fast -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver30.o driver30.chpl -o $@
+
+
+driver31.exe: driver31.f90 driver31.h driver31.chpl
+	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver31.f90
+	chpl -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver31.o driver31.chpl -o $@
