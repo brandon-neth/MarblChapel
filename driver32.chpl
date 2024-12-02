@@ -446,7 +446,9 @@ proc main() {
       dust_flux[colIdx], iron_flux[colIdx], nox_flux[colIdx], nhy_flux[colIdx]);
     
     marblWrapper.surfaceFluxCompute(columnTracers, dt);
+    
     marblWrapper.setInteriorTendencyForcingValues(zt, nt, columnTracers, dust_flux[colIdx], 1.0, 1.0, 1.0, temperature[colIdx,..], salinity[colIdx,..], ztCol);
+    marblWrapper.setInteriorTendencyForcingScalar("Dust Flux", dust_flux[colIdx]);
     marblWrapper.setInteriorTendencyForcingArray(surfaceShortwave[colIdx,..].size,"Surface Shortwave", surfaceShortwave[colIdx,..]);
     marblWrapper.setInteriorTendencyForcingArray(columnFraction[colIdx,..].size,"PAR Column Fraction", columnFraction[colIdx,..]);
     marblWrapper.setInteriorTendencyForcingArray(activeLevelCount[colIdx],"Pressure", pressure[colIdx,..]);

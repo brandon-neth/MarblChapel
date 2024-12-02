@@ -207,6 +207,9 @@ subroutine set_interior_tendency_forcing_array(interop_obj, nz, variableName, vn
       if (vName == "Iron Sediment Flux") then
         marbl_instance%interior_tendency_forcings(idx)%field_1d(1:nz,1) = data(1:nz) * 0.01_r8
       end if
+      if (vName == "Salinity") then
+        marbl_instance%interior_tendency_forcings(idx)%field_1d(1:nz,1) = data(1:nz) * 1.0e3_r8
+      end if
       found = .true.
     end if
   end do
@@ -296,9 +299,6 @@ subroutine copy_tracer_values(interop_obj, nz, nt, tracer_array) bind(C, name='c
   do m=1,nt
     marbl_instance%tracers(m,:) = tracer_array(:,m)
   end do
-  marbl_instance%bot_flux_to_tend(:) = 0.0
-  marbl_instance%bot_flux_to_tend(nz)= 1./marbl_instance%domain%delta_z(nz) 
-  marbl_instance%domain%num_elements_interior_tendency = 5
 end subroutine copy_tracer_values
 
 subroutine compute_interior_tendencies(interop_obj) bind(C,name='compute_interior_tendencies')

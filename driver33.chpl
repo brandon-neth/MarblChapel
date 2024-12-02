@@ -429,45 +429,36 @@ proc main() {
     tracerArray[c,t,z] = tracerData[t,c,z];
   }
 
-  //
-  // Step 2: Initialize Geometry
-  //
-
   const dt = 1.0;
-
-  
-
-
-  var colIdx = 1;
 
   coforall loc in Locales do on loc {
     var zt = readDim(ncPath, "zt"): int;
     var nt = 32;
     var ztCol = readVar(ncPath, "zt", c_double, 1);
-  var activeLevelCount = readVar(ncPath, "active_level_cnt", c_int, 1);
+    var activeLevelCount = readVar(ncPath, "active_level_cnt", c_int, 1);
 
-  // scalars for each column
- // writeln("Reading scalar values...");
-  var dust_flux = readVar(ncPath, "dust_flux", c_double, 1);
-  var iron_flux = readVar(ncPath, "iron_flux", c_double, 1);
-  var iron_sed_flux = readVar(ncPath, "iron_sed_flux", c_double, 2);
-  var nox_flux = readVar(ncPath, "nox_flux", c_double, 1);
-  var nhy_flux = readVar(ncPath, "nhy_flux", c_double, 1);
-  var atm_co2 = readVar(ncPath, "atm_co2", c_double, 1);
-  var atm_alt_co2 = readVar(ncPath, "atm_alt_co2", c_double, 1);
-  var u10_sqr = readVar(ncPath, "u10_sqr", c_double, 1);
+    // scalars for each column
+  // writeln("Reading scalar values...");
+    var dust_flux = readVar(ncPath, "dust_flux", c_double, 1);
+    var iron_flux = readVar(ncPath, "iron_flux", c_double, 1);
+    var iron_sed_flux = readVar(ncPath, "iron_sed_flux", c_double, 2);
+    var nox_flux = readVar(ncPath, "nox_flux", c_double, 1);
+    var nhy_flux = readVar(ncPath, "nhy_flux", c_double, 1);
+    var atm_co2 = readVar(ncPath, "atm_co2", c_double, 1);
+    var atm_alt_co2 = readVar(ncPath, "atm_alt_co2", c_double, 1);
+    var u10_sqr = readVar(ncPath, "u10_sqr", c_double, 1);
 
-  //writeln("Reading geometry data...");
-  var delta_z = readVar(ncPath, "delta_z", c_double, 1);
-  var zw = readVar(ncPath, "zw", c_double, 1);
-  var SST = readVar(ncPath, "SST", c_double, 1);
-  var SSS = readVar(ncPath, "SSS", c_double, 1);
-  var temperature = readVar(ncPath, "temperature", c_double, 2);
-  var salinity = readVar(ncPath, "salinity", c_double, 2);
-  var pressure = readVar(ncPath, "pressure", c_double, 2);
-  var surfaceShortwave = readVar(ncPath, "QSW_BIN", c_double, 2);
-  var o2Factor = readVar(ncPath, "o2_consumption_scalef", c_double, 2);
-  var columnFraction = readVar(ncPath, "FRACR_BIN", c_double, 2);
+    //writeln("Reading geometry data...");
+    var delta_z = readVar(ncPath, "delta_z", c_double, 1);
+    var zw = readVar(ncPath, "zw", c_double, 1);
+    var SST = readVar(ncPath, "SST", c_double, 1);
+    var SSS = readVar(ncPath, "SSS", c_double, 1);
+    var temperature = readVar(ncPath, "temperature", c_double, 2);
+    var salinity = readVar(ncPath, "salinity", c_double, 2);
+    var pressure = readVar(ncPath, "pressure", c_double, 2);
+    var surfaceShortwave = readVar(ncPath, "QSW_BIN", c_double, 2);
+    var o2Factor = readVar(ncPath, "o2_consumption_scalef", c_double, 2);
+    var columnFraction = readVar(ncPath, "FRACR_BIN", c_double, 2);
     const myTracerDomain = distributedDomain.localSubdomain();
     writeln("Locale ", here.id, "Owns the tracer domain: ", myTracerDomain);
 
@@ -486,72 +477,45 @@ proc main() {
         dust_flux[colIdx], iron_flux[colIdx], nox_flux[colIdx], nhy_flux[colIdx]);
       marblWrapper.surfaceFluxCompute(columnTracers, dt);
 
-      marblWrapper.setInteriorTendencyForcingValues(zt, nt, columnTracers, dust_flux[colIdx], 1.0, 1.0, 1.0, temperature[colIdx,..], salinity[colIdx,..], ztCol);
+      marblWrapper.setInteriorTendencyForcingScalar("Dust Flux", dust_flux[colIdx]);
+      marblWrapper.setInteriorTendencyForcingArray(temperature[colIdx,..].size,"Potential Temperature", temperature[colIdx,..]);
+      marblWrapper.setInteriorTendencyForcingArray(salinity[colIdx,..].size,"Salinity", salinity[colIdx,..]);
       marblWrapper.setInteriorTendencyForcingArray(surfaceShortwave[colIdx,..].size,"Surface Shortwave", surfaceShortwave[colIdx,..]);
       marblWrapper.setInteriorTendencyForcingArray(columnFraction[colIdx,..].size,"PAR Column Fraction", columnFraction[colIdx,..]);
       marblWrapper.setInteriorTendencyForcingArray(activeLevelCount[colIdx],"Pressure", pressure[colIdx,..]);
       marblWrapper.setInteriorTendencyForcingArray(activeLevelCount[colIdx],"O2 Consumption Scale Factor", o2Factor[colIdx,..]);
       marblWrapper.setInteriorTendencyForcingArray(activeLevelCount[colIdx],"Iron Sediment Flux", iron_sed_flux[colIdx,..]);
+      marblWrapper.copyTracerValues(columnTracers);
+
       marblWrapper.interiorTendencyCompute(columnTracers, dt);
 
       myTracerArray[colIdx,..,..] = columnTracers[..,..];
 
-      var kmt = activeLevelCount[colIdx];
-    writeln("kmt: ", kmt);
-    var checkPath = "call_compute_subroutines.history.nc";
-    for i in 1..32 {
-      
-      var name = tracerShortNames[i];
-      //writeln("Checking output for tracer: ", name);
-      var originalConcentration = readVar(checkPath, name, c_double, 2);
-      var expectedTendency = readVar(checkPath, "J_" + name, c_double, 2);
-      var expectedNewConcentration = originalConcentration[colIdx,1..kmt] + expectedTendency[colIdx,1..kmt] * dt;
-      //writeln("  Expected concentrations: ", expectedNewConcentration);
+    } // forall
 
-
-      var calculatedConcentration = myTracerArray[colIdx, i,1..kmt];
-      //writeln("getting data from locale ", myTracerArray[colIdx,i,1..kmt].locale.id);
-      //writeln("Calculated concentration size : ", calculatedConcentration.shape);
-      //writeln("expected concentration size : ", expectedNewConcentration.shape);
-      //writeln("Calculated concentrations: ", calculatedConcentration);
-      var difference = calculatedConcentration - expectedNewConcentration;
-      if (+ reduce difference) != 0 then writeln("Nonzero difference sum for ", name ," on column ", colIdx, ": ", + reduce difference);
-    }
-    }
-
-  }
-
-  
-  // Step 3: Surface Flux
-  //
-  
-  
-
+  } // coforall
 
   var checkPath = "call_compute_subroutines.history.nc";
 
   for colIdx in 1..5:int {
     var kmt = activeLevelCount[colIdx];
-    writeln("kmt: ", kmt);
+    
     for i in 1..32 {
       
       var name = tracerShortNames[i];
-      //writeln("Checking output for tracer: ", name);
+      
       var originalConcentration = readVar(checkPath, name, c_double, 2);
       var expectedTendency = readVar(checkPath, "J_" + name, c_double, 2);
       var expectedNewConcentration = originalConcentration[colIdx,1..kmt] + expectedTendency[colIdx,1..kmt] * dt;
-      //writeln("  Expected concentrations: ", expectedNewConcentration);
-
-
+      
       var calculatedConcentration = tracerArray[colIdx, i,1..kmt];
-      //writeln("Calculated concentration size : ", calculatedConcentration.shape);
-      //writeln("expected concentration size : ", expectedNewConcentration.shape);
+      
       var equality: [1..kmt] bool;
       for j in 1..kmt do equality[j] = calculatedConcentration[j] == expectedNewConcentration[j];
       var allEqual = && reduce equality;
-      if !allEqual then writeln("Mismatch on ", name);
-      //var difference = calculatedConcentration == expectedNewConcentration;
-
+      if !allEqual {
+        writeln("Mismatch on ", name, " for column ", colIdx, ". Sum of differences: ", + reduce (calculatedConcentration - expectedNewConcentration));
+      }
     }
   }
   
