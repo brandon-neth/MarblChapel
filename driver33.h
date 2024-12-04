@@ -22,17 +22,9 @@ void set_interior_tendency_forcing_values(struct marbl_interop_type * interop_ob
   double* srflx, double* Cp, double* rho0,
   double* temperature, double* salinity, double* z_r);
 
-
 void set_interior_tendency_forcing_array(struct marbl_interop_type * interop_obj, 
   int* nz, const char * variableName, int* vnLen, double * data);
 
 
 void set_interior_tendency_forcing_scalar(struct marbl_interop_type * interop_obj, 
   int* nz, const char * variableName, int* vnLen, double * data);
-
-void copy_tracer_values(struct marbl_interop_type * interop_obj, 
-  int* nz, int* nt, double* tracer_array);
-   
-void compute_interior_tendencies(struct marbl_interop_type * interop_obj);
-
-void update_interior_tendencies(struct marbl_interop_type * interop_obj, int* nz, int* nt, double* tracer_array, double* dt);

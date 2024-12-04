@@ -165,8 +165,9 @@ for colIdx_ in tracerArrayDomain.dim[0] {
   
   var numParSubcols = columnFraction[colIdx,..].size;  
   var numElementsSurfaceFlux = 5;
-  marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]);
 
+  marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
+  marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]);
 
   // Set surface flux forcing
   marblWrapper.setSurfaceFluxForcingValue("sss", salinity[colIdx, 1]);
@@ -179,13 +180,61 @@ for colIdx_ in tracerArrayDomain.dim[0] {
   marblWrapper.setSurfaceFluxForcingValue("Iron Flux", iron_flux[colIdx]);
   marblWrapper.setSurfaceFluxForcingValue("NOx Flux", nox_flux[colIdx]);
   marblWrapper.setSurfaceFluxForcingValue("NHy Flux", nhy_flux[colIdx]);
-  
+
+  //Copy surface tracers
+  marblWrapper.setSurfaceTracers(columnTracers);
+
   // Run surface flux compute
   marblWrapper.surfaceFluxCompute(columnTracers, dt);
 
   // Set interior tendency forcing values
-  
+  var scaledSalinity = salinity * 1.0e3;
+  var scaledIronSed = iron_sed_flux * 0.01;
+  marblWrapper.setInteriorTendencyForcingScalar("Dust Flux", dust_flux[colIdx]);
+  marblWrapper.setInteriorTendencyForcingArray("Potential Temperature", temperature[colIdx,..]);
+  marblWrapper.setInteriorTendencyForcingArray("Salinity", scaledSalinity[colIdx,..]);
+  marblWrapper.setInteriorTendencyForcingArray("Surface Shortwave", surfaceShortwave[colIdx,..]);
+  marblWrapper.setInteriorTendencyForcingArray("PAR Column Fraction", columnFraction[colIdx,..]);
+  marblWrapper.setInteriorTendencyForcingArray("Pressure", pressure[colIdx,..], activeLevelCount[colIdx]);
+  marblWrapper.setInteriorTendencyForcingArray("O2 Consumption Scale Factor", o2Factor[colIdx,..], activeLevelCount[colIdx]);
+  marblWrapper.setInteriorTendencyForcingArray("Iron Sediment Flux", scaledIronSed[colIdx,..], activeLevelCount[colIdx]);
 
+  // Copy interior tracer values
+  marblWrapper.setTracers(columnTracers);
+
+  // Run interior tendency compute
+  marblWrapper.interiorTendencyCompute(columnTracers, dt);
+
+  // Copy the calculated values back into the global tracer array
+  tracerArray[colIdx,..,..] = columnTracers[..,..];
+}
+
+//Verify the calculations were within tolerance
+var tolerance = 1e-20;
+
+var checkPath = "call_compute_subroutines.history.nc";
+
+for colIdx in 1..5:int {
+  var kmt = activeLevelCount[colIdx];
+
+  for i in 1..nt:int {
+    var tracerName = tracerShortNames[i];
+
+    var originalConcentration = readVar(checkPath, tracerName, c_double, 2);
+    var expectedTendency = readVar(checkPath, "J_" + tracerName, c_double, 2);
+    var expectedNewConcentration = originalConcentration[colIdx,1..kmt] + expectedTendency[colIdx,1..kmt] * dt;
+
+    var calculatedConcentration = tracerArray[colIdx, i,1..kmt];
+    var equality: [1..kmt] bool;
+    for j in 1..kmt do 
+      equality[j] = tolerance >= abs(calculatedConcentration[j] - expectedNewConcentration[j]);
+
+    var allWithin = && reduce equality;
+    if !allWithin {
+       writeln("Mismatch on ", tracerName, " for column ", colIdx, ". Sum of differences: ", + reduce (calculatedConcentration - expectedNewConcentration));
+    }
+      
+  }
 }
 
 

@@ -52,11 +52,11 @@ subroutine init_marbl_instance(interop_obj, gcm_num_levels, gcm_num_PAR_subcols,
   call marbl_obj_ptr%put_setting(namelist_line)
 
   call marbl_obj_ptr%init(gcm_num_levels=gcm_num_levels, gcm_num_PAR_subcols = 6, gcm_num_elements_surface_flux = 5, gcm_delta_z = gcm_delta_z(:), gcm_zw = gcm_zw(:),      gcm_zt = gcm_zt(:),      lgcm_has_global_ops = .true., unit_system_opt='mks')
-   tmp => marbl_obj_ptr%StatusLog%FullLog
-    do while (associated(tmp))
+   !tmp => marbl_obj_ptr%StatusLog%FullLog
+   ! do while (associated(tmp))
       !print *, trim(tmp%LogMessage)
-      tmp => tmp%next
-    end do
+      !tmp => tmp%next
+    !end do
 
   !marbl_obj_ptr%domain%zw(:)      = -gcm_zw(nz-1:0:-1) ! bottom interface depth
   !marbl_obj_ptr%domain%zt(:)      = -gcm_zt(nz  :1:-1) ! centre depth
@@ -200,7 +200,9 @@ subroutine set_interior_tendency_forcing_array(interop_obj, nz, variableName, vn
   call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
   vName = transfer(variableName, vName)
   found = .false.
+
   do idx = 1,size(marbl_instance%interior_tendency_forcings)
+    print *, 'forcing value name: ', trim(MARBL_instance%interior_tendency_forcings(idx)%metadata%varname)
     if (trim(MARBL_instance%interior_tendency_forcings(idx)%metadata%varname) == vName) then
     marbl_instance%interior_tendency_forcings(idx)%field_1d(:,1) = 0.0_r8
       marbl_instance%interior_tendency_forcings(idx)%field_1d(1:nz,1) = data(1:nz)

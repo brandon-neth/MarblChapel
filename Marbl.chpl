@@ -30,6 +30,18 @@ module Marbl {
     }
 
     /*
+      Reads and applies a MARBL settings file to the Fortran-side MARBL instance. This process should usually occur before initializing the MARBL instance with the `initMarblInstance` method.
+
+      :arg filename: The path to the MARBL settings file
+
+     */
+    proc importSettings(filename) {
+      var lock = initBarrier.readFE();
+      import_settings(this, filename.c_str(), filename.size : c_int);
+      initBarrier.writeEF(lock);
+    }
+
+    /*
       Initializes the Fortran-side MARBL instance.
 
       :arg numLevels: The maximum number of layers in the columns of this simulation. This value should be the same across each MARBL instance.
@@ -47,11 +59,9 @@ module Marbl {
       :arg activeLevelCount: The number of active layers in the column this instance is simulating. For example, if there are 60 total cells, but only 50 cells between the surface and the ocean floor, this argument should be 50.
      */
     proc initMarblInstance(const ref numLevels, const ref numParSubcols, const ref numElementsSurfaceFlux, ref deltaZ, ref zw, ref zt, const ref activeLevelCount) {
-      var lock = initBarrier.readFE();
       init_marbl_instance(this, numLevels: c_int, numParSubcols: c_int, 
       numElementsSurfaceFlux: c_int, c_ptrTo(deltaZ), c_ptrTo(zw), c_ptrTo(zt), 
       activeLevelCount: c_int);
-      initBarrier.writeEF(lock);
     }
 
     /*
@@ -81,7 +91,7 @@ module Marbl {
 
       :arg tracerArray: The array of tracers to pass to the Fortran-side MARBL instance. The domain of this array should be the tracers in the first dimension and the vertical dimension in the second.
      */ 
-    proc setSurfaceTracers(const ref tracerArray) {
+    proc setSurfaceTracers(ref tracerArray) {
       var nt, nz: int;
       (nt,nz) = tracerArray.shape;
       set_surface_tracers(this, nt: c_int, nz: c_int, c_ptrTo(tracerArray));
@@ -103,14 +113,66 @@ module Marbl {
     }
 
     /*
-      
+      Copies an array into one of MARBL's interior tendency forcing variables. 
 
+      :arg variableName: The name of the interior tendency forcing variable to set
+
+      :arg data: The array of data to copy into the MARBL instance
+
+      :arg numElements: Optional. The number of elements to copy into the MARBL instance. 
+      Default is the full length of `data`.
      */
+    proc setInteriorTendencyForcingArray(variableName, ref data, numElements=data.size) {
+      set_interior_tendency_forcing_array(this, variableName.c_str(), variableName.size : c_int, 
+        c_ptrTo(data), numElements: c_int);
+    }
+
+    /*
+      Copies a value into one of MARBL's interior tendency forcing variables. 
+
+      :arg variableName: The name of the interior tendency forcing variable to set
+
+      :arg value: The value to copy into the MARBL instance
+     */
+    proc setInteriorTendencyForcingScalar(variableName, value) {
+      set_interior_tendency_forcing_scalar(this, variableName.c_str(), variableName.size : c_int, 
+        value: c_double);
+    }
+
+    /* 
+      Copies the tracer values into the Fortran-side MARBL instance.
+
+      :arg tracerArray: The array of tracers to pass to the Fortran-side MARBL instance. The domain of this array should be the tracers in the first dimension and the vertical dimension in the second.
+     */ 
+    proc setTracers(ref tracerArray) {
+      var nt, nz: int;
+      (nt,nz) = tracerArray.shape;
+      set_tracers(this, nt: c_int, nz: c_int, c_ptrTo(tracerArray));
+    }
+
+    /* 
+      Computes the interior tracer tendencies and increments the tracer array.
+
+      :arg tracerArray: The array of tracers to update with the calculated tendencies.
+
+      :arg dt: The timestep to apply the tendencies through. The tracer array will be 
+      incremented by `dt` times the calculated tendencies.
+     */
+     proc interiorTendencyCompute(ref tracerArray, dt) {
+      compute_interior_tendencies(this);
+      var nt, nz: int;
+      (nt,nz) = tracerArray.shape;
+      update_interior_tendencies(this, nt: c_int, nz: c_int, c_ptrTo(tracerArray), dt: c_double);
+    
+     }
     
   } // extern record marblInteropType
 
   extern proc init_interop_obj(const ref marblWrapper: marblInteropType);
 
+  extern proc import_settings(const ref marblWrapper: marblInteropType, 
+    filename: c_ptrConst(c_char), const ref filename_len: c_int);
+  
   extern proc init_marbl_instance(const ref marblWrapper: marblInteropType, 
     const ref num_levels: c_int, const ref num_PAR_subcols: c_int, 
     const ref num_elements_surface_flux: c_int, delta_z: c_ptr(c_double), 
@@ -121,12 +183,27 @@ module Marbl {
     const ref value: c_double);
 
   extern proc set_surface_tracers(const ref marblWrapper: marblInteropType, 
-    const ref nt: c_int, const ref nz: c_int, ref tracer_array: c_ptr(c_double));
+    const ref nt: c_int, const ref nz: c_int, tracer_array: c_ptr(c_double));
 
   extern proc compute_surface_fluxes(const ref interop_obj: marblInteropType);
 
   extern proc update_surface_fluxes(const ref interop_obj: marblInteropType,
     const ref nt: c_int, const ref nz: c_int, tracer_array: c_ptr(c_double),
     const ref dt: c_double);
+
+  extern proc set_interior_tendency_forcing_array(const ref interop_obj: marblInteropType,
+    variable_name: c_ptrConst(c_char), const ref vn_len: c_int,
+    data: c_ptr(c_double), const ref num_elements: c_int);
+
+  extern proc set_interior_tendency_forcing_scalar(const ref interop_obj: marblInteropType,
+    variable_name: c_ptrConst(c_char), const ref vn_len: c_int, const ref value : c_double);
   
+  extern proc set_tracers(const ref marblWrapper: marblInteropType, 
+    const ref nt: c_int, const ref nz: c_int, tracer_array: c_ptr(c_double));
+
+  extern proc compute_interior_tendencies(const ref marblWrapper: marblInteropType);
+
+  extern proc update_interior_tendencies(const ref interop_obj: marblInteropType,
+    const ref nt: c_int, const ref nz: c_int, tracer_array: c_ptr(c_double),
+    const ref dt: c_double);
 } // module Marbl
