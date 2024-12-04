@@ -238,10 +238,6 @@ module MarblChapel
 
     if (.not. found) then
       print *, 'Failed to set interior tendency forcing array. Could not find variable with name "', v_name, '"'
-      print *, 'Options are:'
-      do idx = 1,size(marbl_instance%interior_tendency_forcings)
-        print *, ' ', trim(MARBL_instance%interior_tendency_forcings(idx)%metadata%varname)
-      end do
     end if
   end subroutine set_interior_tendency_forcing_array
 

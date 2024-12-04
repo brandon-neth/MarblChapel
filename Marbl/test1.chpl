@@ -1,3 +1,5 @@
+// Full test of MARBL interop using a single MARBL instance.
+
 use Marbl;
 use CTypes;
 module myNetCDF {

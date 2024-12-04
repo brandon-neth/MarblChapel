@@ -2,6 +2,8 @@ marbl_home = ${HOME}/MARBL-marbl0.45.0
 marbl_mod_path = $(marbl_home)/include/gnu
 marbl_lib_path= $(marbl_home)/lib
 
+fortran_lib_path = /opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/
+
 clean: 
 	rm *.o *.mod *.exe
 
@@ -143,3 +145,14 @@ driver30.exe: driver30.f90 driver30.h driver30.chpl
 driver31.exe: driver31.f90 driver31.h driver31.chpl
 	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver31.f90
 	chpl -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver31.o driver31.chpl -o $@
+
+
+
+driver32.exe: driver32.f90 driver32.h driver32.chpl
+	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver32.f90
+	chpl -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver32.o driver32.chpl -o $@
+
+
+driver33.exe: driver33.f90 driver33.h driver33.chpl
+	gfortran -I$(marbl_mod_path) -L$(marbl_lib_path) -c driver33.f90
+	chpl -lgfortran  -L/opt/homebrew/Cellar/gcc/14.2.0/lib/gcc/14/ -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu driver33.o driver33.chpl -o $@
