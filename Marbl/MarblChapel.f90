@@ -206,7 +206,8 @@ module MarblChapel
     end do
   end subroutine update_surface_fluxes
 
-  subroutine set_interior_tendency_forcing_array(interop_obj, variable_name, vn_len, data, num_elements) bind(C, name='set_interior_tendency_forcing_array')
+  subroutine set_interior_tendency_forcing_array(interop_obj, variable_name, &
+    vn_len, data, num_elements) bind(C, name='set_interior_tendency_forcing_array')
     ! This subroutine sets an interior tendency forcing vector.
     implicit none
     ! Parameters
@@ -241,7 +242,8 @@ module MarblChapel
     end if
   end subroutine set_interior_tendency_forcing_array
 
-  subroutine set_interior_tendency_forcing_scalar(interop_obj, variable_name, vn_len, value) bind(C, name='set_interior_tendency_forcing_scalar')
+  subroutine set_interior_tendency_forcing_scalar(interop_obj, variable_name, &
+    vn_len, value) bind(C, name='set_interior_tendency_forcing_scalar')
     ! This subroutine sets an interior tendency forcing scalar value.
     implicit none
     ! Parameters
