@@ -168,6 +168,8 @@ for colIdx_ in tracerArrayDomain.dim[0] {
   var numParSubcols = columnFraction[colIdx,..].size;  
   var numElementsSurfaceFlux = 5;
 
+  writeln("Column sum: ", + reduce columnTracers[..,1..activeLevelCount[colIdx]]);
+
   marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
   marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]);
 
