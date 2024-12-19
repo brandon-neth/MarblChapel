@@ -5,9 +5,9 @@
   MARBL interoperability works using three layers: One Chapel, one C, one Fortran. First, there is the Chapel layer that contains the `marblInteropType` record and a collection of `extern` procedures. The `marblInteropType` record is the main way users will interact with the MARBL library, using the methods of the record. Second, there is the C header layer, contained in this file, which connects the Chapel `extern` procedures to their definitions in Fortran. Finally, there is the Fortran layer, which defines the various `extern` procedures declared in the Chapel layer. 
 */
 
-struct marblInteropType {
+typedef struct marblInteropType {
   void *  marbl_obj;
-};
+} marblInteropType;
 
 void init_interop_obj(struct marblInteropType * interop_obj);
 
