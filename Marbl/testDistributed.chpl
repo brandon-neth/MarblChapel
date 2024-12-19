@@ -182,7 +182,7 @@ coforall loc in Locales do on loc {
   var surfaceShortwave = readVar(ncPath, "QSW_BIN", c_double, 2);
   var o2Factor = readVar(ncPath, "o2_consumption_scalef", c_double, 2);
   var columnFraction = readVar(ncPath, "FRACR_BIN", c_double, 2);
-
+  var atm_pressure = readVar(ncPath, "atm_pressure", c_double, 1);
 
   const myTracerDomain = distributedDomain.localSubdomain();
   ref myTracerArray = tracerArray[myTracerDomain];
@@ -209,6 +209,7 @@ coforall loc in Locales do on loc {
     marblWrapper.setSurfaceFluxForcingValue("Atmospheric Pressure", atm_pressure[colIdx]);
     marblWrapper.setSurfaceFluxForcingValue("Dust Flux", dust_flux[colIdx]);
     marblWrapper.setSurfaceFluxForcingValue("Iron Flux", iron_flux[colIdx]);
+    
     marblWrapper.setSurfaceFluxForcingValue("NOx Flux", nox_flux[colIdx]);
     marblWrapper.setSurfaceFluxForcingValue("NHy Flux", nhy_flux[colIdx]);
 
