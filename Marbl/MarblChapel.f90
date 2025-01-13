@@ -91,7 +91,8 @@ module MarblChapel
     integer(c_int), intent(in) :: active_level_count
     ! Local variables
     type(marbl_interface_class), pointer :: marbl_instance
-    
+    integer :: m
+
     ! Get the pointer to the marbl instance
     call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
 
@@ -106,6 +107,24 @@ module MarblChapel
     marbl_instance%domain%kmt = active_level_count
     marbl_instance%bot_flux_to_tend(:) = 0.0    
     marbl_instance%bot_flux_to_tend(marbl_instance%domain%kmt) = 1._r8/marbl_instance%domain%delta_z(marbl_instance%domain%kmt) 
+
+    ! Initialize the saved state variables to zero
+    do m=1,size(marbl_instance%surface_flux_saved_state%state)
+      if (marbl_instance%surface_flux_saved_state%state(m)%rank == 2) then
+        marbl_instance%surface_flux_saved_state%state(m)%field_2d = 0.0
+      end if
+      if (marbl_instance%surface_flux_saved_state%state(m)%rank == 3) then
+        marbl_instance%surface_flux_saved_state%state(m)%field_3d = 0.0
+      end if
+    end do
+    do m=1,size(marbl_instance%interior_tendency_saved_state%state)
+      if (marbl_instance%interior_tendency_saved_state%state(m)%rank == 2) then
+        marbl_instance%interior_tendency_saved_state%state(m)%field_2d = 0.0
+      end if
+      if (marbl_instance%interior_tendency_saved_state%state(m)%rank == 3) then
+        marbl_instance%interior_tendency_saved_state%state(m)%field_3d = 0.0
+      end if
+    end do
   end subroutine init_marbl_instance
 
   subroutine set_surface_flux_forcing_value(interop_obj, variable_name, &
@@ -307,7 +326,7 @@ module MarblChapel
     type(marblInteropType), intent(inout) :: interop_obj
     ! Local Variables
     type(marbl_interface_class), pointer :: marbl_instance
-
+    
     ! Get the pointer to the marbl instance
     call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
 
