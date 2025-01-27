@@ -42,3 +42,11 @@ void compute_interior_tendencies(struct marblInteropType * interop_obj);
 
 void update_interior_tendencies(struct marblInteropType * interop_obj, 
   int * nt, int * nz, double * tracer_array, double * dt);
+
+
+void get_saved_state_value_2d(struct marblInteropType * interop_obj, 
+  const char * variable_name, int * vn_len, double * ptr_out, int * ptr_out_len);
+
+void get_saved_state_value_3d(struct marblInteropType * interop_obj, 
+  const char * variable_name, int * vn_len, double * ptr_out, int * ptr_out_len1, int * ptr_out_len2);
+  

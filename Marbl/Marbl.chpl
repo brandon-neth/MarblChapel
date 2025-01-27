@@ -210,6 +210,32 @@ module Marbl {
       update_interior_tendencies(this, nt: c_int, nz: c_int, c_ptrTo(tracerArray),
         dt: c_double);
      }
+
+     proc getSavedState(variableName, param numDims) throws {
+       if numDims == 1 {
+         var ptr: c_ptr(c_double);
+         var size: c_int;
+         get_saved_state_value_2d(this, variableName.c_str(), variableName.size : c_int, ptr, size);
+         if size == -1 {
+           throw new Error("MARBL returned an error when getting the saved state variable " + variableName);
+         }
+         var savedStateArray: [1..size] real = makeArrayFromPtr(ptr, {1..size});
+         return savedStateArray;
+       } else if numDims == 2 {
+         var ptr: c_ptr(c_double);
+         var size1, size2: c_int;
+         get_saved_state_value_3d(this, variableName.c_str(), variableName.size : c_int, ptr, size1, size2);
+         if size1 == -1 {
+           throw new Error("MARBL returned an error when getting the saved state variable " + variableName);
+         }
+         // note the reversal of the order of the dimensions, as this is Fortran-allocated data
+         var savedStateArray: [1..size2, 1..size1] real = makeArrayFromPtr(ptr, {1..size2, 1..size1});
+         return savedStateArray;
+       } else {
+         throw new Error("getSavedState only supports 1D and 2D saved state variables, but got " + numDims);
+         return 0;
+       }
+     }
   } // extern record marblInteropType
 
   extern proc init_interop_obj(const ref marblWrapper: marblInteropType);
@@ -250,4 +276,14 @@ module Marbl {
   extern proc update_interior_tendencies(const ref interop_obj: marblInteropType,
     const ref nt: c_int, const ref nz: c_int, tracer_array: c_ptr(c_double),
     const ref dt: c_double);
+
+  extern proc get_saved_state_value_2d(const ref interop_obj: marblInteropType,
+      variable_name: c_ptrConst(c_char), const ref vn_len: c_int, 
+      ref ptr_out : c_ptr(c_double), ref ptr_out_len: c_int);
+  
+    extern proc get_saved_state_value_3d(const ref interop_obj: marblInteropType,
+      variable_name: c_ptrConst(c_char), const ref vn_len: c_int, 
+      ref ptr_out :  c_ptr(c_double), ref ptr_out_len1: c_int, ref ptr_out_len2);
+
+
 } // module Marbl
