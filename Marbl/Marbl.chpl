@@ -236,6 +236,16 @@ module Marbl {
          return 0;
        }
      }
+
+     proc setSavedState(variableName, data) {
+       if data.domain.size == 1 {
+         set_saved_state_value_2d(this, variableName.c_str(), variableName.size : c_int, c_ptrTo(data), data.size : c_int);
+       } else if data.domain.size == 2 {
+         set_saved_state_value_3d(this, variableName.c_str(), variableName.size : c_int, c_ptrTo(data), data.shape(0) : c_int, data.shape(1) : c_int);
+       } else {
+         throw new Error("setSavedState only supports 1D and 2D saved state variables, but got " + data.domain.size);
+       }
+     }
   } // extern record marblInteropType
 
   extern proc init_interop_obj(const ref marblWrapper: marblInteropType);
@@ -281,9 +291,16 @@ module Marbl {
       variable_name: c_ptrConst(c_char), const ref vn_len: c_int, 
       ref ptr_out : c_ptr(c_double), ref ptr_out_len: c_int);
   
-    extern proc get_saved_state_value_3d(const ref interop_obj: marblInteropType,
+  extern proc get_saved_state_value_3d(const ref interop_obj: marblInteropType,
+    variable_name: c_ptrConst(c_char), const ref vn_len: c_int, 
+    ref ptr_out :  c_ptr(c_double), ref ptr_out_len1: c_int, ref ptr_out_len2);
+
+  extern proc set_saved_state_value_2d(const ref interop_obj: marblInteropType,
       variable_name: c_ptrConst(c_char), const ref vn_len: c_int, 
-      ref ptr_out :  c_ptr(c_double), ref ptr_out_len1: c_int, ref ptr_out_len2);
-
-
+      ref data_ptr : c_ptr(c_double), const ref data_len: c_int);
+  
+  extern proc set_saved_state_value_3d(const ref interop_obj: marblInteropType,
+    variable_name: c_ptrConst(c_char), const ref vn_len: c_int, 
+    ref data_ptr :  c_ptr(c_double), const ref data_len1: c_int, const ref data_len2);
+  
 } // module Marbl

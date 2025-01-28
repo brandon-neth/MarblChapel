@@ -50,3 +50,9 @@ void get_saved_state_value_2d(struct marblInteropType * interop_obj,
 void get_saved_state_value_3d(struct marblInteropType * interop_obj, 
   const char * variable_name, int * vn_len, double * ptr_out, int * ptr_out_len1, int * ptr_out_len2);
   
+void set_saved_state_value_2d(struct marblInteropType * interop_obj, 
+  const char * variable_name, int * vn_len, double * data_ptr, int * data_len);
+
+void set_saved_state_value_3d(struct marblInteropType * interop_obj, 
+  const char * variable_name, int * vn_len, double * data_ptr, int * data_len1, int * data_len2);
+  
