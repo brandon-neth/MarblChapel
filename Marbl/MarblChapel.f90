@@ -376,7 +376,7 @@ module MarblChapel
     character(kind=c_char, len=vn_len) :: v_name
     integer :: idx
     logical :: found
-    real(c_double), pointer, dimension(:,:) :: data_ptr
+    real(c_double), pointer, dimension(:) :: data_ptr
     type(c_ptr) :: ptr_out2
 
     ! Get the pointer to the marbl instance
@@ -533,7 +533,7 @@ module MarblChapel
 
     ! Get a fortran pointer to the data to copy in
     call c_f_pointer(data_ptr, data_array, [data_len])
-
+    print *, 'data_array: ', data_array
     ! First check interior tendency saved state
     do idx = 1,marbl_instance%interior_tendency_saved_state%saved_state_cnt
       if (trim(marbl_instance%interior_tendency_saved_state%state(idx)%short_name) == v_name &
