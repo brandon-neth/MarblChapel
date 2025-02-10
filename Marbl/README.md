@@ -41,7 +41,7 @@ This invokes your fortran compiler. This README uses `gfortran`, but your system
 
 From this directory, with the environment variables set as described above, run the command 
 ```
-gfortran -L$MARBL_INCLUDE_PATH -c MarblChapel.f90
+gfortran -I$MARBL_INCLUDE_PATH -c MarblChapel.f90
 ```
 This will create two files: `MarblChapel.o` and `marblchapel.mod`. 
 
