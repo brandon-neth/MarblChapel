@@ -1,5 +1,5 @@
 // Full test of MARBL interop using a single MARBL instance.
-
+use Map;
 use Marbl;
 use CTypes;
 module myNetCDF {
@@ -225,4 +225,15 @@ for colIdx_ in tracerArrayDomain.dim[0] {
 
   var asArray = marblWrapper.getDiagnostic("zoo_loss", 2);
   writeln("Got diagnostic: ", asArray);
+
+  var num_diagnostics: c_int;
+  num_interior_tendency_diagnostics(marblWrapper, num_diagnostics);
+  writeln("Num diagnostics: ", num_diagnostics);
+
+  var diagMap = marblWrapper.getDiagnosticNames();
+
+  for diagName in diagMap.keys() {
+    writeln("Diagnostic: ", diagName, ". Dimensionality: ", diagMap[diagName]);
+  }
+
 }
