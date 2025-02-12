@@ -258,6 +258,9 @@ module Marbl {
         var nameLen: c_int;
         var dim: c_int;
         get_interior_tendency_diagnostic_name(this, i, name, nameLen, dim);
+        if dim == -1 {
+          throw new Error("MARBL returned an error when getting the diagnostic variable with index " + i:string);
+        }
         var nameStr = string.createCopyingBuffer(name, nameLen);
         nameDimMap[nameStr] = dim;
       }
@@ -273,6 +276,9 @@ module Marbl {
         var nameLen: c_int;
         var dim: c_int;
         get_surface_flux_diagnostic_name(this, i, name, nameLen, dim);
+        if dim == -1 {
+          throw new Error("MARBL returned an error when getting the diagnostic variable with index " + i:string);
+        }
         var nameStr = string.createCopyingBuffer(name, nameLen);
         nameDimMap[nameStr] = dim;
       }
