@@ -619,4 +619,108 @@ module MarblChapel
     ! If we get here, we didn't find the variable
     print *, 'Failed to set saved state value. Could not find variable with name "', v_name, '"'
   end subroutine set_saved_state_value_3d
+
+  subroutine num_interior_tendency_saved_states(interop_obj, num_states) bind(C, name='num_interior_tendency_saved_states')
+    ! This subroutine returns the number of interior tendency saved states
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(out) :: num_states
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Return the number of interior tendency saved states
+    num_states = marbl_instance%interior_tendency_saved_state%saved_state_cnt
+  end subroutine num_interior_tendency_saved_states
+
+  subroutine num_surface_flux_saved_states(interop_obj, num_states) bind(C, name='num_surface_flux_saved_states')
+    ! This subroutine returns the number of surface flux saved states
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(out) :: num_states
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Return the number of surface flux saved states
+    num_states = marbl_instance%surface_flux_saved_state%saved_state_cnt
+  end subroutine num_surface_flux_saved_states
+
+  subroutine get_interior_tendency_saved_state_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_interior_tendency_saved_state_name')
+    ! This subroutine returns the name of the interior tendency saved state at the given index
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: idx
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len
+    integer(c_int), intent(out) :: dim_out
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(len=256), pointer :: name
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    if (idx > size(marbl_instance%interior_tendency_saved_state%state)) then
+      print *, 'get_interior_tendency_saved_state_name: Index out of bounds. ', idx
+      ptr_out = c_null_ptr
+      ptr_out_len = -1
+      dim_out = -1
+      return
+    end if
+
+    ! Get the name of the saved state variable
+    name = marbl_instance%interior_tendency_saved_state%state(idx)%short_name
+    
+    ptr_out = c_loc(name)
+    ptr_out_len = len_trim(name)
+    if ('none' .eq. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
+      dim_out = 2
+    else
+      dim_out = 3
+    end if
+  end subroutine get_interior_tendency_saved_state_name
+
+  subroutine get_surface_flux_saved_state_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_surface_flux_saved_state_name')
+    ! This subroutine returns the name of the surface flux saved state at the given index
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: idx
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len
+    integer(c_int), intent(out) :: dim_out
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(len=256), pointer :: name
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    if (idx > size(marbl_instance%surface_flux_saved_state%state)) then
+      print *, 'get_surface_flux_saved_state_name: Index out of bounds. ', idx
+      ptr_out = c_null_ptr
+      ptr_out_len = -1
+      dim_out = -1
+      return
+    end if
+
+    ! Get the name of the saved state variable
+    name = marbl_instance%surface_flux_saved_state%state(idx)%short_name
+    
+    ptr_out = c_loc(name)
+    ptr_out_len = len_trim(name)
+    if ('none' .eq. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
+      dim_out = 2
+    else
+      dim_out = 3
+    end if
+  end subroutine get_surface_flux_saved_state_name
 end module MarblChapel

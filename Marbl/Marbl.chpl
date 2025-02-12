@@ -211,41 +211,81 @@ module Marbl {
         dt: c_double);
      }
 
-     proc getSavedState(variableName, param numDims) throws {
-       if numDims == 1 {
-         var ptr: c_ptr(c_double);
-         var size: c_int;
-         get_saved_state_value_2d(this, variableName.c_str(), variableName.size : c_int, ptr, size);
-         if size == -1 {
-           throw new Error("MARBL returned an error when getting the saved state variable " + variableName);
-         }
-         var savedStateArray: [1..size] real = makeArrayFromPtr(ptr, {1..size});
-         return savedStateArray;
-       } else if numDims == 2 {
-         var ptr: c_ptr(c_double);
-         var size1, size2: c_int;
-         get_saved_state_value_3d(this, variableName.c_str(), variableName.size : c_int, ptr, size1, size2);
-         if size1 == -1 {
-           throw new Error("MARBL returned an error when getting the saved state variable " + variableName);
-         }
-         // note the reversal of the order of the dimensions, as this is Fortran-allocated data
-         var savedStateArray: [1..size2, 1..size1] real = makeArrayFromPtr(ptr, {1..size2, 1..size1});
-         return savedStateArray;
-       } else {
-         throw new Error("getSavedState only supports 1D and 2D saved state variables, but got " + numDims);
-         return 0;
-       }
-     }
+    proc getSavedState(variableName, param numDims) throws {
+      if numDims == 1 {
+        var ptr: c_ptr(c_double);
+        var size: c_int;
+        get_saved_state_value_2d(this, variableName.c_str(), variableName.size : c_int, ptr, size);
+        if size == -1 {
+          throw new Error("MARBL returned an error when getting the saved state variable " + variableName);
+        }
+        var savedStateArray: [1..size] real = makeArrayFromPtr(ptr, {1..size});
+        return savedStateArray;
+      } else if numDims == 2 {
+        var ptr: c_ptr(c_double);
+        var size1, size2: c_int;
+        get_saved_state_value_3d(this, variableName.c_str(), variableName.size : c_int, ptr, size1, size2);
+        if size1 == -1 {
+          throw new Error("MARBL returned an error when getting the saved state variable " + variableName);
+        }
+        // note the reversal of the order of the dimensions, as this is Fortran-allocated data
+        var savedStateArray: [1..size2, 1..size1] real = makeArrayFromPtr(ptr, {1..size2, 1..size1});
+        return savedStateArray;
+      } else {
+        throw new Error("getSavedState only supports 1D and 2D saved state variables, but got " + numDims);
+        return 0;
+      }
+    }
 
-     proc setSavedState(variableName, data) {
-       if data.domain.size == 1 {
-         set_saved_state_value_2d(this, variableName.c_str(), variableName.size : c_int, c_ptrTo(data), data.size : c_int);
-       } else if data.domain.size == 2 {
-         set_saved_state_value_3d(this, variableName.c_str(), variableName.size : c_int, c_ptrTo(data), data.shape(0) : c_int, data.shape(1) : c_int);
-       } else {
-         throw new Error("setSavedState only supports 1D and 2D saved state variables, but got " + data.domain.size);
-       }
-     }
+    proc setSavedState(variableName, data) throws {
+      if data.domain.size == 1 {
+        set_saved_state_value_2d(this, variableName.c_str(), variableName.size : c_int, c_ptrTo(data), data.size : c_int);
+      } else if data.domain.size == 2 {
+        set_saved_state_value_3d(this, variableName.c_str(), variableName.size : c_int, c_ptrTo(data), data.shape(0) : c_int, data.shape(1) : c_int);
+      } else {
+        throw new Error("setSavedState only supports 1D and 2D saved state variables, but got " + data.domain.size);
+      }
+    }
+
+    proc getInteriorTendencySavedStateNames() throws {
+      var nameDimMap: map(string, int);
+      var count: c_int;
+      num_interior_tendency_saved_states(this, count);
+      for i in 0..<count {
+        var name: c_ptr(c_char);
+        var nameLen: c_int;
+        var dim: c_int;
+        get_interior_tendency_saved_state_name(this, i, name, nameLen, dim);
+        if dim == -1 {
+          throw new Error("MARBL returned an error when getting the interior tendency saved state name with index " + i:string);
+        }
+        var nameStr = string.createCopyingBuffer(name, nameLen);
+        nameDimMap[nameStr] = dim;
+      }
+    }
+
+    proc getSurfaceFluxSavedStateNames() throws {
+      var nameDimMap: map(string, int);
+      var count: c_int;
+      num_surface_flux_saved_states(this, count);
+      for i in 0..<count {
+        var name: c_ptr(c_char);
+        var nameLen: c_int;
+        var dim: c_int;
+        get_surface_flux_saved_state_name(this, i, name, nameLen, dim);
+        if dim == -1 {
+          throw new Error("MARBL returned an error when getting the surface flux saved state name with index " + i:string);
+        }
+        var nameStr = string.createCopyingBuffer(name, nameLen);
+        nameDimMap[nameStr] = dim;
+      }
+    }
+
+    proc getSavedStateNames() throws {
+      var nameMap = getInteriorTendencySavedStateNames();
+      nameMap.extend(getSurfaceFluxSavedStateNames());
+      return nameMap;
+    }
   } // extern record marblInteropType
 
   extern proc init_interop_obj(const ref marblWrapper: marblInteropType);
@@ -303,4 +343,15 @@ module Marbl {
     variable_name: c_ptrConst(c_char), const ref vn_len: c_int, 
     ref data_ptr :  c_ptr(c_double), const ref data_len1: c_int, const ref data_len2);
   
+  extern proc num_interior_tendency_saved_states(const ref interop_obj: marblInteropType, 
+    ref num_states: c_int);
+
+  extern proc num_surface_flux_saved_states(const ref interop_obj: marblInteropType, 
+    ref num_states: c_int);
+
+  extern proc get_interior_tendency_saved_state_name(const ref interop_obj: marblInteropType, 
+    const ref idx: c_int, ref name: c_ptr(c_char), ref name_len: c_int, ref dim_out: c_int);
+
+  extern proc get_surface_flux_saved_state_name(const ref interop_obj: marblInteropType, 
+    const ref idx: c_int, ref name: c_ptr(c_char), ref name_len: c_int, ref dim_out: c_int);
 } // module Marbl

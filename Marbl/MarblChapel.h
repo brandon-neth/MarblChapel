@@ -56,3 +56,14 @@ void set_saved_state_value_2d(struct marblInteropType * interop_obj,
 void set_saved_state_value_3d(struct marblInteropType * interop_obj, 
   const char * variable_name, int * vn_len, double * data_ptr, int * data_len1, int * data_len2);
   
+void num_interior_tendency_saved_states(struct marblInteropType * interop_obj, 
+  int * num_states);
+
+void num_surface_flux_saved_states(struct marblInteropType * interop_obj, 
+  int * num_states);
+
+void get_interior_tendency_saved_state_name(struct marblInteropType * interop_obj, 
+  int * idx, char * name, int * name_len, int * dim_out);
+
+void get_surface_flux_saved_state_name(struct marblInteropType * interop_obj, 
+  int * idx, char * name, int * name_len, int * dim_out);
