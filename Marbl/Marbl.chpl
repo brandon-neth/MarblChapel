@@ -251,7 +251,7 @@ module Marbl {
       var nameDimMap: map(string, int);
       var count: c_int;
       num_interior_tendency_saved_states(this, count);
-      for i in 0..<count {
+      for i in 1..count {
         var name: c_ptr(c_char);
         var nameLen: c_int;
         var dim: c_int;
@@ -268,7 +268,7 @@ module Marbl {
       var nameDimMap: map(string, int);
       var count: c_int;
       num_surface_flux_saved_states(this, count);
-      for i in 0..<count {
+      for i in 1..count {
         var name: c_ptr(c_char);
         var nameLen: c_int;
         var dim: c_int;
