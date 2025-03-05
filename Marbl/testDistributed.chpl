@@ -186,11 +186,13 @@ coforall loc in Locales do on loc {
 
   const myTracerDomain = distributedDomain.localSubdomain();
   ref myTracerArray = tracerArray[myTracerDomain];
+
+  var marblWrappers: [myTracerDomain.dim[0]] marblInteropType;
   forall colIdx_ in myTracerDomain.dim[0] {
     var colIdx = colIdx_: int;
     var columnTracers: [1..nt, 1..nz] c_double = myTracerArray[colIdx,..,..];
 
-    var marblWrapper : marblInteropType;
+    var marblWrapper = marblWrappers[colIdx];
     assert(marblWrapper.marbl_obj:int != 0);
     
     var numParSubcols = columnFraction[colIdx,..].size;  
@@ -238,6 +240,10 @@ coforall loc in Locales do on loc {
     marblWrapper.interiorTendencyCompute(columnTracers, dt);
 
     myTracerArray[colIdx,..,..] = columnTracers[..,..];
+  }
+
+  for i in myTracerDomain.dim[0] {
+    marblWrappers[i].shutdown();
   }
 }
 

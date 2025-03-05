@@ -40,6 +40,18 @@ module MarblChapel
     interop_obj%marbl_obj = c_loc(marbl_instance_ptr)
   end subroutine init_interop_obj
 
+  subroutine deinit_interop_obj(interop_obj) bind(C, name='deinit_interop_obj')
+    ! This subroutine deallocates a MARBL instance object
+    implicit none
+    type(MarblInteropType), intent(inout) :: interop_obj
+    type(marbl_interface_class), pointer :: marbl_instance
+
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+    
+    call marbl_instance%shutdown()
+    deallocate(marbl_instance)
+  end subroutine deinit_interop_obj
+
   subroutine import_settings(interop_obj, filename, filename_len) bind(C, name='import_settings')
     ! This subroutine reads a marbl settings file and applies those settings to the MARBL instance.
     ! The caller is responsible for ensuring that only one thread is accessing the settings file at a time.
@@ -54,13 +66,11 @@ module MarblChapel
     integer(c_int) :: marbl_settings_in, open_status, read_status
     character(len=256) :: namelist_line
     
-
     ! Get the pointer to the marbl instance
     call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
 
     ! Convert the C-style string to a Fortran-style stirng
     file_path = transfer(filename, file_path)
-
     ! Read the settings file
     open(action='read', unit=marbl_settings_in, file=file_path, &
       iostat=open_status)
