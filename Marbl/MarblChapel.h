@@ -44,3 +44,21 @@ void compute_interior_tendencies(struct marblInteropType * interop_obj);
 
 void update_interior_tendencies(struct marblInteropType * interop_obj, 
   int * nt, int * nz, double * tracer_array, double * dt);
+
+void get_diagnostic_value_2d(struct marblInteropType * interop_obj, 
+  const char * variable_name, int * vn_len, double * ptr_out, int * ptr_out_len);
+
+void get_diagnostic_value_3d(struct marblInteropType * interop_obj, 
+  const char * variable_name, int * vn_len, double * ptr_out, int * ptr_out_len1, int * ptr_out_len2);
+
+void num_interior_tendency_diagnostics(struct marblInteropType * interop_obj, 
+  int * num_diagnostics);
+
+void num_surface_flux_diagnostics(struct marblInteropType * interop_obj, 
+  int * num_diagnostics);
+
+void get_interior_tendency_diagnostic_name(struct marblInteropType * interop_obj, 
+  int * idx, char * name, int * name_len, int * num_dims);
+
+void get_surface_flux_diagnostic_name(struct marblInteropType * interop_obj, 
+  int * idx, char * name, int * name_len, int * num_dims);
