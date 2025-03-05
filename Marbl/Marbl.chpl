@@ -17,6 +17,7 @@ module Marbl {
   */
 
   use CTypes;
+  use IO;
   require "MarblChapel.h";
 
   // Used to ensure only one marblInteropType has access to the settings files
@@ -42,6 +43,13 @@ module Marbl {
     proc init() {
       init this;
       init_interop_obj(this);
+    }
+
+    /* 
+      Frees the Fortran-side MARBL instance.
+     */
+    proc shutdown() {
+      deinit_interop_obj(this);
     }
 
     /*
@@ -213,6 +221,8 @@ module Marbl {
   } // extern record marblInteropType
 
   extern proc init_interop_obj(const ref marblWrapper: marblInteropType);
+  
+  extern proc deinit_interop_obj(const ref marblWrapper: marblInteropType);
 
   extern proc import_settings(const ref marblWrapper: marblInteropType, 
     filename: c_ptrConst(c_char), const ref filename_len: c_int);
