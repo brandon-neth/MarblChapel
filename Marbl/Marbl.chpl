@@ -45,6 +45,13 @@ module Marbl {
       init_interop_obj(this);
     }
 
+    /* 
+      Frees the Fortran-side MARBL instance.
+     */
+    proc shutdown() {
+      deinit_interop_obj(this);
+    }
+
     /*
       Reads and applies a MARBL settings file to the Fortran-side MARBL
       instance. This process should usually occur before initializing the MARBL
@@ -297,6 +304,8 @@ module Marbl {
   } // extern record marblInteropType
 
   extern proc init_interop_obj(const ref marblWrapper: marblInteropType);
+  
+  extern proc deinit_interop_obj(const ref marblWrapper: marblInteropType);
 
   extern proc import_settings(const ref marblWrapper: marblInteropType, 
     filename: c_ptrConst(c_char), const ref filename_len: c_int);

@@ -11,6 +11,8 @@ typedef struct marblInteropType {
 
 void init_interop_obj(struct marblInteropType * interop_obj);
 
+void deinit_interop_obj(struct marblInteropType * interop_obj);
+
 void import_settings(struct marblInteropType * interop_obj, 
   const char * filename, int * filename_len);
 
