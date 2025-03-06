@@ -40,6 +40,18 @@ module MarblChapel
     interop_obj%marbl_obj = c_loc(marbl_instance_ptr)
   end subroutine init_interop_obj
 
+  subroutine deinit_interop_obj(interop_obj) bind(C, name='deinit_interop_obj')
+    ! This subroutine deallocates a MARBL instance object
+    implicit none
+    type(MarblInteropType), intent(inout) :: interop_obj
+    type(marbl_interface_class), pointer :: marbl_instance
+
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+    
+    call marbl_instance%shutdown()
+    deallocate(marbl_instance)
+  end subroutine deinit_interop_obj
+
   subroutine import_settings(interop_obj, filename, filename_len) bind(C, name='import_settings')
     ! This subroutine reads a marbl settings file and applies those settings to the MARBL instance.
     ! The caller is responsible for ensuring that only one thread is accessing the settings file at a time.
@@ -54,13 +66,11 @@ module MarblChapel
     integer(c_int) :: marbl_settings_in, open_status, read_status
     character(len=256) :: namelist_line
     
-
     ! Get the pointer to the marbl instance
     call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
 
     ! Convert the C-style string to a Fortran-style stirng
     file_path = transfer(filename, file_path)
-
     ! Read the settings file
     open(action='read', unit=marbl_settings_in, file=file_path, &
       iostat=open_status)
@@ -358,4 +368,271 @@ module MarblChapel
       tracer_array(:,m) = tracer_array(:,m) + marbl_instance%interior_tendencies(m,:) * dt
     end do
   end subroutine update_interior_tendencies
+
+
+  subroutine get_diagnostic_value_2d(interop_obj, variable_name, vn_len, ptr_out, ptr_out_len) bind(C, name='get_diagnostic_value_2d')
+    ! This routine populates ptr_out and ptr_out_len with the value of the diagnostic variable and its length. 
+    ! While the diagnostic variable uses '2d' in its name, it is actually a 1D variable, so we only have one length to return.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: vn_len
+    character(kind=c_char), dimension(vn_len), intent(in) :: variable_name
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(kind=c_char, len=vn_len) :: v_name
+    integer :: idx
+    logical :: found
+    integer :: data_len
+    real(c_double), pointer, dimension(:) :: data_ptr
+
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Transfer the C-style string to a Fortran-style string
+    v_name = transfer(variable_name, v_name)
+
+    ! Find the correct diagnostic variable index
+    found = .false.
+
+    ! First check interior_tendency_compute_diagnostics
+    do idx = 1,size(marbl_instance%interior_tendency_diags%diags)
+      if (trim(marbl_instance%interior_tendency_diags%diags(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%interior_tendency_diags%diags(idx)%long_name) == v_name) then
+        found = .true.
+        if ('none' .ne. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
+          print *, 'Warning: diagnostic variable ', v_name, ' is not a 2D variable.'
+          ptr_out = c_null_ptr
+          ptr_out_len = -1
+          return
+        end if
+        data_ptr => marbl_instance%interior_tendency_diags%diags(idx)%field_2d
+        data_len = size(marbl_instance%interior_tendency_diags%diags(idx)%field_2d)
+      end if
+    end do
+
+    ! Second, check surface_flux_diagnostics
+    do idx = 1,size(marbl_instance%surface_flux_diags%diags)
+      if (trim(marbl_instance%surface_flux_diags%diags(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%surface_flux_diags%diags(idx)%long_name) == v_name) then
+        found = .true.
+        if ('none' .ne. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
+          print *, 'Warning: diagnostic variable ', v_name, ' is not a 2D variable.'
+          ptr_out = c_null_ptr
+          ptr_out_len = -1
+          return
+        end if
+        data_ptr => marbl_instance%surface_flux_diags%diags(idx)%field_2d
+        data_len = size(marbl_instance%surface_flux_diags%diags(idx)%field_2d)
+        print *, 'found in surface_flux_diags.'
+        print *, 'data: ', data_ptr
+      end if
+    end do
+
+    if (.not. found) then
+      print *, 'Failed to get diagnostic value. Could not find variable with name "', v_name, '"'
+      ptr_out = c_null_ptr
+      ptr_out_len = -1
+      return
+    end if
+
+    ! Return the pointer to the data and its length
+    ptr_out = c_loc(data_ptr)
+    ptr_out_len = data_len
+  end subroutine get_diagnostic_value_2d
+
+  subroutine get_diagnostic_value_3d(interop_obj, variable_name, vn_len, ptr_out, ptr_out_len1, ptr_out_len2) bind(C, name='get_diagnostic_value_3d')
+    ! This routine populates ptr_out and ptr_out_len with the value of the diagnostic variable and its length.
+    ! While the diagnostic variable uses '3d' in its name, it is actually a 2D variable, so we only have two lengths to return.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: vn_len
+    character(kind=c_char), dimension(vn_len), intent(in) :: variable_name
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len1
+    integer(c_int), intent(out) :: ptr_out_len2
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(kind=c_char, len=vn_len) :: v_name
+    integer :: idx
+    logical :: found
+    real(c_double), pointer, dimension(:,:) :: data_ptr
+    type(c_ptr) :: ptr_out2
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Transfer the C-style string to a Fortran-style string
+    v_name = transfer(variable_name, v_name)
+
+    ! Find the correct diagnostic variable index
+    found = .false.
+
+    ! First check interior_tendency_compute_diagnostics
+    do idx = 1,size(marbl_instance%interior_tendency_diags%diags)
+      if (trim(marbl_instance%interior_tendency_diags%diags(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%interior_tendency_diags%diags(idx)%long_name) == v_name) then
+        found = .true.
+        if ('none' .eq. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
+          print *, 'Warning: diagnostic variable ', v_name, ' is not a 3D variable.'
+          ptr_out = c_null_ptr
+          ptr_out_len1 = -1
+          ptr_out_len2 = -1
+          return
+        end if
+        data_ptr => marbl_instance%interior_tendency_diags%diags(idx)%field_3d
+        ptr_out_len1 = size(marbl_instance%interior_tendency_diags%diags(idx)%field_3d,1)
+        ptr_out_len2 = size(marbl_instance%interior_tendency_diags%diags(idx)%field_3d,2)
+      end if
+    end do
+
+    ! Second, check surface_flux_diagnostics
+    do idx = 1,size(marbl_instance%surface_flux_diags%diags)
+      if (trim(marbl_instance%surface_flux_diags%diags(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%surface_flux_diags%diags(idx)%long_name) == v_name) then
+        found = .true.
+        if ('none' .eq. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
+          print *, 'Warning: diagnostic variable ', v_name, ' is not a 3D variable.'
+          ptr_out = c_null_ptr
+          ptr_out_len1 = -1
+          ptr_out_len2 = -1
+          return
+        end if
+        data_ptr => marbl_instance%surface_flux_diags%diags(idx)%field_3d
+        ptr_out_len1 = size(marbl_instance%surface_flux_diags%diags(idx)%field_3d,1)
+        ptr_out_len2 = size(marbl_instance%surface_flux_diags%diags(idx)%field_3d,2)
+      end if
+    end do
+
+    if (.not. found) then
+      print *, 'Failed to get diagnostic value. Could not find variable with name "', v_name, '"'
+      ptr_out = c_null_ptr
+      ptr_out_len1 = -1
+      ptr_out_len2 = -1
+      return
+    end if
+    
+    ! Return the pointer to the data and its length
+    ptr_out = c_loc(data_ptr)
+
+  end subroutine get_diagnostic_value_3d
+
+  subroutine num_interior_tendency_diagnostics(interop_obj, num_diagnostics) bind(C, name='num_interior_tendency_diagnostics')
+    ! This routine populates num_diagnostics with the number of interior tendency diagnostics.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(out) :: num_diagnostics
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Return the number of interior tendency diagnostics
+    num_diagnostics = size(marbl_instance%interior_tendency_diags%diags)
+  end subroutine num_interior_tendency_diagnostics
+
+  subroutine num_surface_flux_diagnostics(interop_obj, num_diagnostics) bind(C, name='num_surface_flux_diagnostics')
+    ! This routine populates num_diagnostics with the number of surface flux diagnostics.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(out) :: num_diagnostics
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Return the number of surface flux diagnostics
+    num_diagnostics = size(marbl_instance%surface_flux_diags%diags)
+  end subroutine num_surface_flux_diagnostics
+
+  subroutine get_interior_tendency_diagnostic_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_interior_tendency_diagnostic_name')
+    ! This routine populates ptr_out and ptr_out_len with the name of the diagnostic variable, its length, and the variable's dimensionality.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: idx
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len
+    integer(c_int), intent(out) :: dim_out
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(len=256), pointer :: name
+    integer :: name_len
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    if (idx > size(marbl_instance%interior_tendency_diags%diags)) then
+      print *, 'get_interior_diagnostic_name: Index out of bounds.'
+      ptr_out = c_null_ptr
+      ptr_out_len = -1
+      dim_out = -1
+      return
+    end if
+
+    allocate(name)
+
+    ! Get the name of the diagnostic variable
+    name = marbl_instance%interior_tendency_diags%diags(idx)%short_name
+    name_len = len_trim(name)
+
+    ! Return the pointer to the name and its length
+    ptr_out = c_loc(name)
+    ptr_out_len = name_len
+    if ('none' .eq. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
+      dim_out = 2
+    else
+      dim_out = 3
+    end if
+
+  end subroutine get_interior_tendency_diagnostic_name
+
+  subroutine get_surface_flux_diagnostic_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_surface_flux_diagnostic_name')
+    ! This routine populates ptr_out and ptr_out_len with the name of the diagnostic variable, its length, and the variable's dimensionality.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: idx
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len
+    integer(c_int), intent(out) :: dim_out
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(len=256), pointer :: name
+    integer :: name_len
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+    
+    if (idx > size(marbl_instance%interior_tendency_diags%diags)) then
+      print *, 'get_surface_flux_diagnostic_name: Index out of bounds: ', idx
+      ptr_out = c_null_ptr
+      ptr_out_len = -1
+      dim_out = -1
+      return
+    end if
+    allocate(name)
+
+    ! Get the name of the diagnostic variable
+    name = marbl_instance%surface_flux_diags%diags(idx)%short_name
+    name_len = len_trim(name)
+
+    ! Return the pointer to the name and its length
+    ptr_out = c_loc(name)
+    ptr_out_len = name_len
+    if ('none' .eq. trim(marbl_instance%surface_flux_diags%diags(idx)%vertical_grid)) then
+      dim_out = 2
+    else
+      dim_out = 3
+    end if
+    
+  end subroutine get_surface_flux_diagnostic_name
 end module MarblChapel

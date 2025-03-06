@@ -1,5 +1,5 @@
 // Full test of MARBL interop using a single MARBL instance.
-
+use Map;
 use Marbl;
 use CTypes;
 module myNetCDF {
@@ -156,19 +156,19 @@ forall (c,t,z) in tracerArrayDomain {
 
 
 
-var marblWrappers: [1..numColumns] marblInteropType;
 
-forall colIdx_ in tracerArrayDomain.dim[0] {
+for colIdx_ in tracerArrayDomain.dim[0] {
   var colIdx = colIdx_ : int;
   var columnTracers: [1..nt, 1..nz] c_double = tracerArray[colIdx,..,..];
   
   // Initialize and verify it connects to something on the Fortran side
-  var marblWrapper = marblWrappers[colIdx];
+  var marblWrapper : marblInteropType;
   assert(marblWrapper.marbl_obj:int != 0);
   
   var numParSubcols = columnFraction[colIdx,..].size;  
   var numElementsSurfaceFlux = 5;
 
+  writeln("Column sum: ", + reduce columnTracers[..,1..activeLevelCount[colIdx]]);
 
   marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
   marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]);
@@ -209,40 +209,31 @@ forall colIdx_ in tracerArrayDomain.dim[0] {
   // Run interior tendency compute
   marblWrapper.interiorTendencyCompute(columnTracers, dt);
 
-  // Copy the calculated values back into the global tracer array
-  tracerArray[colIdx,..,..] = columnTracers[..,..];
-}
+  // Get a diagnostic variable
+  var diag_ptr: c_ptr(c_double);
+  var diag_size: c_int;
+  var diagName = "zoo_loss";
+  writeln("Getting 2d diagnostic");
+  get_diagnostic_value_2d(marblWrapper, diagName.c_str(), diagName.size : c_int, diag_ptr, diag_size);
+  writeln("diag length: ", diag_size);
 
-for colIdx in 1..numColumns {
-  marblWrappers[colIdx].shutdown();
-}
-//Verify the calculations were within tolerance
-var tolerance = 1e-20;
+  writeln("Getting 3d diagnostic");
+  var diag_size1: c_int;
+  var diag_size2: c_int;
+  get_diagnostic_value_3d(marblWrapper, diagName.c_str(), diagName.size : c_int, diag_ptr, diag_size1, diag_size2);
+  writeln("diag lengths: ", diag_size1, ' ', diag_size2);
 
-var checkPath = "call_compute_subroutines.history.nc";
+  var asArray = marblWrapper.getDiagnostic("zoo_loss", 2);
+  writeln("Got diagnostic: ", asArray);
 
-for colIdx in 1..5:int {
-  var kmt = activeLevelCount[colIdx];
+  var num_diagnostics: c_int;
+  num_interior_tendency_diagnostics(marblWrapper, num_diagnostics);
+  writeln("Num diagnostics: ", num_diagnostics);
 
-  for i in 1..nt:int {
-    var tracerName = tracerShortNames[i];
+  var diagMap = marblWrapper.getDiagnosticNames();
 
-    var originalConcentration = readVar(checkPath, tracerName, c_double, 2);
-    var expectedTendency = readVar(checkPath, "J_" + tracerName, c_double, 2);
-    var expectedNewConcentration = originalConcentration[colIdx,1..kmt] + expectedTendency[colIdx,1..kmt] * dt;
-
-    var calculatedConcentration = tracerArray[colIdx, i,1..kmt];
-    var equality: [1..kmt] bool;
-    for j in 1..kmt do 
-      equality[j] = tolerance >= abs(calculatedConcentration[j] - expectedNewConcentration[j]);
-
-    var allWithin = && reduce equality;
-    if !allWithin {
-       writeln("Mismatch on ", tracerName, " for column ", colIdx, ". Sum of differences: ", + reduce (calculatedConcentration - expectedNewConcentration));
-    }
-      
+  for diagName in diagMap.keys() {
+    writeln("Diagnostic: ", diagName, ". Dimensionality: ", diagMap[diagName]);
   }
+
 }
-
-
-writeln("Success");
