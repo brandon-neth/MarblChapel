@@ -20,9 +20,10 @@ var wrappers: [1..n] marblInteropType;
 var s: stopwatch;
 s.start();
 
-for wrapper in wrappers do
-  wrappers.initMarblInstance(num_levels, num_PAR_subcols, num_elements_surface_flux, delta_z, zw, zt, active_level_count);
-
+for i in 1..n {
+  var wrapper = wrappers[i];
+  wrapper.initMarblInstance(num_levels, num_PAR_subcols, num_elements_surface_flux, delta_z, zw, zt, active_level_count);
+}
 
 s.stop();
 writeln(n, ", ", s.elapsed());
