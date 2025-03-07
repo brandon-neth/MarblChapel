@@ -1,6 +1,8 @@
+module test
 
+  contains
 subroutine using_allocatable( num_levels, num_PAR_subcols, &
-  num_elements_surface_flux, delta_z, zw, zt, active_level_count, num_wrappers) 
+  num_elements_surface_flux, delta_z, zw, zt, active_level_count, num_wrappers) bind(C,name='using_allocatable')
   use marbl_interface
   use iso_c_binding
 
@@ -23,7 +25,7 @@ subroutine using_allocatable( num_levels, num_PAR_subcols, &
 end subroutine using_allocatable
 
 subroutine using_pointer( num_levels, num_PAR_subcols, &
-  num_elements_surface_flux, delta_z, zw, zt, active_level_count,num_wrappers) 
+  num_elements_surface_flux, delta_z, zw, zt, active_level_count,num_wrappers) bind(C,name='using_pointer')
   use marbl_interface
   use iso_c_binding
 
@@ -70,7 +72,11 @@ subroutine using_pointer_impl( num_levels, num_PAR_subcols, &
       gcm_delta_z=delta_z, gcm_zw=zw, gcm_zt=zt, lgcm_has_global_ops=.true.)
 end subroutine using_pointer_impl
 
+end module test
+
+#ifdef COMPILE_MAIN
 program main
+  use test
   use marbl_interface
   use iso_c_binding
 
@@ -110,6 +116,7 @@ real(c_double), dimension(60) :: zt = [ &
     
     read(arg2, *) num_wrappers
 
+    write(*, "(A)", advance="NO") "Fortran Version "
     ! Trim and compare
     select case (trim(arg))
         case ("pointer")
@@ -123,11 +130,6 @@ real(c_double), dimension(60) :: zt = [ &
             print *, '"', trim(arg), '"'
             stop 1
     end select
-  
-
-
-
-  
-  !
 
 end program main
+#endif
