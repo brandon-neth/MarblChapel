@@ -1,0 +1,26 @@
+Version,N,Time (s)
+Fortran,10,0.11
+Sequential,10,0.087723
+Threaded,10,0.106991
+Distributed 2 Nodes,10,0.06763
+Distributed 4 Nodes,10,0.067968
+Fortran,50,0.48
+Sequential,50,0.355961
+Threaded,50,0.441225
+Distributed 2 Nodes,50,0.247589
+Distributed 4 Nodes,50,0.147834
+Fortran,100,0.88
+Sequential,100,0.689419
+Threaded,100,0.818868
+Distributed 2 Nodes,100,0.459224
+Distributed 4 Nodes,100,0.242307
+Fortran,500,4.22
+Sequential,500,3.37169
+Threaded,500,3.72021
+Distributed 2 Nodes,500,1.99189
+Distributed 4 Nodes,500,1.05968
+Fortran,1000,8.38
+Sequential,1000,6.71577
+Threaded,1000,7.03925
+Distributed 2 Nodes,1000,3.71262
+Distributed 4 Nodes,1000,2.01869

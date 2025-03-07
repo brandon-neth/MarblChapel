@@ -8,6 +8,7 @@ else
   outfile=$1
 fi
 
+make clean
 make chapelTest.exe
 make fortranTest.exe
 
