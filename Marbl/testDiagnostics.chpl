@@ -209,31 +209,15 @@ for colIdx_ in tracerArrayDomain.dim[0] {
   // Run interior tendency compute
   marblWrapper.interiorTendencyCompute(columnTracers, dt);
 
-  // Get a diagnostic variable
-  var diag_ptr: c_ptr(c_double);
-  var diag_size: c_int;
-  var diagName = "zoo_loss";
-  writeln("Getting 2d diagnostic");
-  get_diagnostic_value_2d(marblWrapper, diagName.c_str(), diagName.size : c_int, diag_ptr, diag_size);
-  writeln("diag length: ", diag_size);
-
-  writeln("Getting 3d diagnostic");
-  var diag_size1: c_int;
-  var diag_size2: c_int;
-  get_diagnostic_value_3d(marblWrapper, diagName.c_str(), diagName.size : c_int, diag_ptr, diag_size1, diag_size2);
-  writeln("diag lengths: ", diag_size1, ' ', diag_size2);
-
-  var asArray = marblWrapper.getDiagnostic("zoo_loss", 2);
-  writeln("Got diagnostic: ", asArray);
-
-  var num_diagnostics: c_int;
-  num_interior_tendency_diagnostics(marblWrapper, num_diagnostics);
-  writeln("Num diagnostics: ", num_diagnostics);
-
-  var diagMap = marblWrapper.getDiagnosticNames();
-
-  for diagName in diagMap.keys() {
-    writeln("Diagnostic: ", diagName, ". Dimensionality: ", diagMap[diagName]);
+  var nameDims = marblWrapper.getDiagnosticNames();
+  for name in nameDims.keys() {
+    var dims = nameDims[name];
+    if dims == 1 {
+      var diagnostic = marblWrapper.getDiagnostic(name, 1);
+      writeln("Diagnostic: ", name, " = ", diagnostic);
+    } else {
+      var diagnostic = marblWrapper.getDiagnostic(name, 2);
+      writeln("Diagnostic: ", name, " = ", diagnostic);
+    }
   }
-
 }

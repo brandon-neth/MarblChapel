@@ -370,8 +370,8 @@ module MarblChapel
   end subroutine update_interior_tendencies
 
 
-  subroutine get_diagnostic_value_2d(interop_obj, variable_name, vn_len, &
-    ptr_out, ptr_out_len) bind(C, name='get_diagnostic_value_2d')
+  subroutine get_diagnostic_value_1d(interop_obj, variable_name, vn_len, &
+    ptr_out, ptr_out_len) bind(C, name='get_diagnostic_value_1d')
     ! This routine populates ptr_out and ptr_out_len with the value of the diagnostic variable and its length. 
     ! While the diagnostic variable uses '2d' in its name, it is actually a 1D variable, so we only have one length to return.
     implicit none
@@ -405,7 +405,7 @@ module MarblChapel
           .or. trim(marbl_instance%interior_tendency_diags%diags(idx)%long_name) == v_name) then
         found = .true.
         if ('none' .ne. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
-          print *, 'Warning: diagnostic variable ', v_name, ' is not a 2D variable.'
+          print *, 'Warning: diagnostic variable ', v_name, ' is not a 1D variable.'
           ptr_out = c_null_ptr
           ptr_out_len = -1
           return
@@ -421,7 +421,7 @@ module MarblChapel
           .or. trim(marbl_instance%surface_flux_diags%diags(idx)%long_name) == v_name) then
         found = .true.
         if ('none' .ne. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
-          print *, 'Warning: diagnostic variable ', v_name, ' is not a 2D variable.'
+          print *, 'Warning: diagnostic variable ', v_name, ' is not a 1D variable.'
           ptr_out = c_null_ptr
           ptr_out_len = -1
           return
@@ -443,10 +443,10 @@ module MarblChapel
     ! Return the pointer to the data and its length
     ptr_out = c_loc(data_ptr)
     ptr_out_len = data_len
-  end subroutine get_diagnostic_value_2d
+  end subroutine get_diagnostic_value_1d
 
-  subroutine get_diagnostic_value_3d(interop_obj, variable_name, vn_len, &
-    ptr_out, ptr_out_len1, ptr_out_len2) bind(C, name='get_diagnostic_value_3d')
+  subroutine get_diagnostic_value_2d(interop_obj, variable_name, vn_len, &
+    ptr_out, ptr_out_len1, ptr_out_len2) bind(C, name='get_diagnostic_value_2d')
     ! This routine populates ptr_out and ptr_out_len with the value of the diagnostic variable and its length.
     ! While the diagnostic variable uses '3d' in its name, it is actually a 2D variable, so we only have two lengths to return.
     implicit none
@@ -480,7 +480,7 @@ module MarblChapel
           .or. trim(marbl_instance%interior_tendency_diags%diags(idx)%long_name) == v_name) then
         found = .true.
         if ('none' .eq. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
-          print *, 'Warning: diagnostic variable ', v_name, ' is not a 3D variable.'
+          print *, 'Warning: diagnostic variable ', v_name, ' is not a 2D variable.'
           ptr_out = c_null_ptr
           ptr_out_len1 = -1
           ptr_out_len2 = -1
@@ -498,7 +498,7 @@ module MarblChapel
           .or. trim(marbl_instance%surface_flux_diags%diags(idx)%long_name) == v_name) then
         found = .true.
         if ('none' .eq. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
-          print *, 'Warning: diagnostic variable ', v_name, ' is not a 3D variable.'
+          print *, 'Warning: diagnostic variable ', v_name, ' is not a 2D variable.'
           ptr_out = c_null_ptr
           ptr_out_len1 = -1
           ptr_out_len2 = -1
@@ -521,7 +521,7 @@ module MarblChapel
     ! Return the pointer to the data and its length
     ptr_out = c_loc(data_ptr)
 
-  end subroutine get_diagnostic_value_3d
+  end subroutine get_diagnostic_value_2d
 
   subroutine num_interior_tendency_diagnostics(interop_obj, num_diagnostics) bind(C, name='num_interior_tendency_diagnostics')
     ! This routine populates num_diagnostics with the number of interior tendency diagnostics.
@@ -591,9 +591,9 @@ module MarblChapel
     ptr_out = c_loc(name)
     ptr_out_len = name_len
     if ('none' .eq. trim(marbl_instance%interior_tendency_diags%diags(idx)%vertical_grid)) then
-      dim_out = 2
+      dim_out = 1
     else
-      dim_out = 3
+      dim_out = 2
     end if
 
   end subroutine get_interior_tendency_diagnostic_name
@@ -633,9 +633,9 @@ module MarblChapel
     ptr_out = c_loc(name)
     ptr_out_len = name_len
     if ('none' .eq. trim(marbl_instance%surface_flux_diags%diags(idx)%vertical_grid)) then
-      dim_out = 2
+      dim_out = 1
     else
-      dim_out = 3
+      dim_out = 2
     end if
     
   end subroutine get_surface_flux_diagnostic_name
@@ -657,7 +657,7 @@ module MarblChapel
     logical :: found
     real(c_double), pointer, dimension(:) :: data_ptr
     type(c_ptr) :: ptr_out2
-
+    character(len=64) :: subname = "get_saved_state_value_1d"
     ! Get the pointer to the marbl instance
     call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
 
@@ -674,6 +674,7 @@ module MarblChapel
         found = .true.
         if ('none' .ne. trim(marbl_instance%interior_tendency_saved_state%state(idx)%vertical_grid)) then
           print *, 'Warning: saved state variable ', v_name, ' is not a 1D variable.'
+          print *, subname
           ptr_out = c_null_ptr
           ptr_out_len = -1
           return
@@ -690,6 +691,7 @@ module MarblChapel
         found = .true.
         if ('none' .ne. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
           print *, 'Warning: saved state variable ', v_name, ' is not a 1D variable.'
+          print *, subname
           ptr_out = c_null_ptr
           ptr_out_len = -1
           return
@@ -729,7 +731,7 @@ module MarblChapel
     logical :: found
     real(c_double), pointer, dimension(:,:) :: data_ptr
     type(c_ptr) :: ptr_out2
-
+    character(len=64) :: subname = "get_saved_state_value_2d"
     ! Get the pointer to the marbl instance
     call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
 
@@ -746,6 +748,7 @@ module MarblChapel
         found = .true.
         if ('none' .eq. trim(marbl_instance%interior_tendency_saved_state%state(idx)%vertical_grid)) then
           print *, 'Warning: saved state variable ', v_name, ' is not a 2D variable.'
+          print *, subname
           ptr_out = c_null_ptr
           ptr_out_len1 = -1
           ptr_out_len2 = -1
@@ -764,6 +767,7 @@ module MarblChapel
         found = .true.
         if ('none' .eq. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
           print *, 'Warning: saved state variable ', v_name, ' is not a 2D variable.'
+          print *, subname
           ptr_out = c_null_ptr
           ptr_out_len1 = -1
           ptr_out_len2 = -1
@@ -794,37 +798,30 @@ module MarblChapel
     type(marblInteropType), intent(inout) :: interop_obj
     integer(c_int), intent(in) :: vn_len
     character(kind=c_char), dimension(vn_len), intent(in) :: variable_name
-    type(c_ptr), intent(in) :: data_ptr
     integer(c_int), intent(in) :: data_len
+    real(c_double), dimension(data_len), intent(in) :: data_ptr
     ! Local Variables
     type(marbl_interface_class), pointer :: marbl_instance
     character(kind=c_char, len=vn_len) :: v_name
     integer :: idx 
     logical :: found
-    real(c_double), pointer, dimension(:) :: data_array
-
-    print *, 'in set_saved_state_value_1d'
-    print *, 'cptr, fortran side: ', data_ptr
+    character(len=64) :: subname = "set_saved_state_value_1d"
     ! Get the pointer to the marbl instance
     call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
 
     ! Transfer the C-style string to a Fortran-style string
     v_name = transfer(variable_name, v_name)
-    print *, 'converted string, variable name is: ', v_name
-    print *, 'getting fortran pointer'
 
-    ! Get a fortran pointer to the data to copy in
-    call c_f_pointer(data_ptr, data_array, [data_len])
-    print *, 'data_array: ', data_array
     ! First check interior tendency saved state
     do idx = 1,marbl_instance%interior_tendency_saved_state%saved_state_cnt
       if (trim(marbl_instance%interior_tendency_saved_state%state(idx)%short_name) == v_name &
           .or. trim(marbl_instance%interior_tendency_saved_state%state(idx)%long_name) == v_name) then
         if ('none' .ne. trim(marbl_instance%interior_tendency_saved_state%state(idx)%vertical_grid)) then
           print *, 'Warning: saved state variable ', v_name, ' is not a 1D variable.'
+          print *, subname
           return
         end if
-        marbl_instance%interior_tendency_saved_state%state(idx)%field_2d = data_array
+        marbl_instance%interior_tendency_saved_state%state(idx)%field_2d = data_ptr
         return
       end if
     end do
@@ -835,9 +832,10 @@ module MarblChapel
           .or. trim(marbl_instance%surface_flux_saved_state%state(idx)%long_name) == v_name) then
         if ('none' .ne. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
           print *, 'Warning: saved state variable ', v_name, ' is not a 1D variable.'
+          print *, subname
           return
         end if
-        marbl_instance%surface_flux_saved_state%state(idx)%field_2d = data_array
+        marbl_instance%surface_flux_saved_state%state(idx)%field_2d = data_ptr
         return
       end if
     end do
@@ -852,25 +850,22 @@ module MarblChapel
     type(marblInteropType), intent(inout) :: interop_obj
     integer(c_int), intent(in) :: vn_len
     character(kind=c_char), dimension(vn_len), intent(in) :: variable_name
-    type(c_ptr), intent(in) :: data_ptr
-    integer(c_int), intent(in) :: data_len1
+        integer(c_int), intent(in) :: data_len1
     integer(c_int), intent(in) :: data_len2
+    real(c_double), dimension(data_len2, data_len1), intent(in) :: data_ptr
+
     ! Local Variables
     type(marbl_interface_class), pointer :: marbl_instance
     character(kind=c_char, len=vn_len) :: v_name
     integer :: idx 
     logical :: found
-    real(c_double), pointer, dimension(:,:) :: data_array
-
+    character(len=64) :: subname = "set_saved_state_value_2d"
 
     ! Get the pointer to the marbl instance
     call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
 
     ! Transfer the C-style string to a Fortran-style string
     v_name = transfer(variable_name, v_name)
-
-    ! Get a fortran pointer to the data to copy in
-    call c_f_pointer(data_ptr, data_array, [data_len1, data_len2])
 
     ! First check interior tendency saved state
     do idx = 1,marbl_instance%interior_tendency_saved_state%saved_state_cnt
@@ -880,7 +875,7 @@ module MarblChapel
           print *, 'Warning: saved state variable ', v_name, ' is not a 2D variable.'
           return
         end if
-        marbl_instance%interior_tendency_saved_state%state(idx)%field_3d = data_array
+        marbl_instance%interior_tendency_saved_state%state(idx)%field_3d = data_ptr
         return
       end if
     end do
@@ -891,15 +886,17 @@ module MarblChapel
           .or. trim(marbl_instance%surface_flux_saved_state%state(idx)%long_name) == v_name) then
         if ('none' .eq. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
           print *, 'Warning: saved state variable ', v_name, ' is not a 2D variable.'
+          print *, subname
           return
         end if
-        marbl_instance%surface_flux_saved_state%state(idx)%field_3d = data_array
+        marbl_instance%surface_flux_saved_state%state(idx)%field_3d = data_ptr
         return
       end if
     end do
 
     ! If we get here, we didn't find the variable
     print *, 'Failed to set saved state value. Could not find variable with name "', v_name, '"'
+    print *, subname
   end subroutine set_saved_state_value_2d
 
   subroutine num_interior_tendency_saved_states(interop_obj, num_states) bind(C, name='num_interior_tendency_saved_states')
@@ -964,7 +961,7 @@ module MarblChapel
     
     ptr_out = c_loc(name)
     ptr_out_len = len_trim(name)
-    if ('none' .eq. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
+    if ('none' .eq. trim(marbl_instance%interior_tendency_saved_state%state(idx)%vertical_grid)) then
       dim_out = 1
     else
       dim_out = 2
