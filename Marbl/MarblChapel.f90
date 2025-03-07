@@ -105,7 +105,7 @@ module MarblChapel
 
     ! Get the pointer to the marbl instance
     call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
-
+    
     ! Initialize the marbl instance
     call marbl_instance%init(gcm_num_levels=num_levels, &
       gcm_num_PAR_subcols=num_PAR_subcols, &
@@ -370,7 +370,8 @@ module MarblChapel
   end subroutine update_interior_tendencies
 
 
-  subroutine get_diagnostic_value_2d(interop_obj, variable_name, vn_len, ptr_out, ptr_out_len) bind(C, name='get_diagnostic_value_2d')
+  subroutine get_diagnostic_value_2d(interop_obj, variable_name, vn_len, &
+    ptr_out, ptr_out_len) bind(C, name='get_diagnostic_value_2d')
     ! This routine populates ptr_out and ptr_out_len with the value of the diagnostic variable and its length. 
     ! While the diagnostic variable uses '2d' in its name, it is actually a 1D variable, so we only have one length to return.
     implicit none
@@ -444,7 +445,8 @@ module MarblChapel
     ptr_out_len = data_len
   end subroutine get_diagnostic_value_2d
 
-  subroutine get_diagnostic_value_3d(interop_obj, variable_name, vn_len, ptr_out, ptr_out_len1, ptr_out_len2) bind(C, name='get_diagnostic_value_3d')
+  subroutine get_diagnostic_value_3d(interop_obj, variable_name, vn_len, &
+    ptr_out, ptr_out_len1, ptr_out_len2) bind(C, name='get_diagnostic_value_3d')
     ! This routine populates ptr_out and ptr_out_len with the value of the diagnostic variable and its length.
     ! While the diagnostic variable uses '3d' in its name, it is actually a 2D variable, so we only have two lengths to return.
     implicit none
@@ -553,7 +555,8 @@ module MarblChapel
     num_diagnostics = size(marbl_instance%surface_flux_diags%diags)
   end subroutine num_surface_flux_diagnostics
 
-  subroutine get_interior_tendency_diagnostic_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_interior_tendency_diagnostic_name')
+  subroutine get_interior_tendency_diagnostic_name(interop_obj, idx, &
+    ptr_out, ptr_out_len, dim_out) bind(C, name='get_interior_tendency_diagnostic_name')
     ! This routine populates ptr_out and ptr_out_len with the name of the diagnostic variable, its length, and the variable's dimensionality.
     implicit none
     ! Parameters
@@ -595,7 +598,8 @@ module MarblChapel
 
   end subroutine get_interior_tendency_diagnostic_name
 
-  subroutine get_surface_flux_diagnostic_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_surface_flux_diagnostic_name')
+  subroutine get_surface_flux_diagnostic_name(interop_obj, idx, &
+    ptr_out, ptr_out_len, dim_out) bind(C, name='get_surface_flux_diagnostic_name')
     ! This routine populates ptr_out and ptr_out_len with the name of the diagnostic variable, its length, and the variable's dimensionality.
     implicit none
     ! Parameters
