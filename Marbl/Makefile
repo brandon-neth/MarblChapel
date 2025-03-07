@@ -12,3 +12,9 @@ MarblChapel.o: MarblChapel.f90
 
 test%.exe: test%.chpl Marbl.chpl MarblChapel.h MarblChapel.o
 	chpl -g -lgfortran -L$(fortran_lib_path) -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu MarblChapel.o $< -o $@
+
+run-tests: test1.exe testDistributed.exe testDiagnostics.exe testSavedState.exe
+	./test1.exe
+	./testDistributed.exe -nl1
+	./testDiagnostics.exe
+	./testSavedState.exe

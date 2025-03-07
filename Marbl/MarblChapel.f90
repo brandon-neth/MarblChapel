@@ -15,6 +15,7 @@ module MarblChapel
   ! declared in the Chapel layer. 
 
   use marbl_interface
+  use marbl_logging, only : marbl_status_log_entry_type
   use marbl_kinds_mod
   use iso_c_binding
 
@@ -1004,4 +1005,46 @@ module MarblChapel
       dim_out = 2
     end if
   end subroutine get_surface_flux_saved_state_name
+
+  subroutine extract_timing(interop_obj) bind(C, name='extract_timing')
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Extract the timing information
+    call marbl_instance%extract_timing()
+  end subroutine extract_timing
+
+  subroutine print_log(interop_obj) bind(C, name='print_log')
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    type(marbl_status_log_entry_type), pointer :: LogEntry
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Set pointer to first entry of the log
+    LogEntry => marbl_instance%StatusLog%FullLog
+
+    do while (associated(LogEntry))
+      print *, trim(LogEntry%LogMessage)
+      LogEntry => LogEntry%next
+    end do
+
+    ! Erase contents of log now that they have been written out
+    call marbl_instance%StatusLog%erase()
+
+    if (marbl_instance%StatusLog%labort_marbl) then
+      print *, 'MARBL has requested an abort.'
+      stop
+    end if
+  end subroutine print_log
 end module MarblChapel

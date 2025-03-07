@@ -389,6 +389,14 @@ module Marbl {
       nameMap.extend(surfaceFluxNames);
       return nameMap;
     }
+
+    proc extractTiming() {
+      extract_timing(this);
+    }
+
+    proc printLog() {
+      print_log(this);
+    }
   } // extern record marblInteropType
 
   extern proc init_interop_obj(const ref marblWrapper: marblInteropType);
@@ -480,4 +488,8 @@ module Marbl {
 
   extern proc get_surface_flux_saved_state_name(const ref interop_obj: marblInteropType, 
     const ref idx: c_int, ref name: c_ptr(c_char), ref name_len: c_int, ref dim_out: c_int);
+
+  extern proc extract_timing(const ref interop_obj: marblInteropType);
+
+  extern proc print_log(const ref interop_obj: marblInteropType);
 } // module Marbl

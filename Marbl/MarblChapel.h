@@ -87,3 +87,7 @@ void get_interior_tendency_saved_state_name(struct marblInteropType * interop_ob
 
 void get_surface_flux_saved_state_name(struct marblInteropType * interop_obj, 
   int * idx, char * name, int * name_len, int * dim_out);
+
+void extract_timing(struct marblInteropType * interop_obj);
+
+void print_log(struct marblInteropType * interop_obj);
