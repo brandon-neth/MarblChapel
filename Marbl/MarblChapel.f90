@@ -641,7 +641,8 @@ module MarblChapel
     
   end subroutine get_surface_flux_diagnostic_name
 
-  subroutine get_saved_state_value_1d(interop_obj, variable_name, vn_len, ptr_out, ptr_out_len) bind(C, name='get_saved_state_value_1d')
+  subroutine get_saved_state_value_1d(interop_obj, variable_name, vn_len, & 
+    ptr_out, ptr_out_len) bind(C, name='get_saved_state_value_1d')
     ! This routine populates ptr_out and ptr_out_len with the value of the saved state variable and its length.
     ! While the saved state variable uses '2d' in its name, it is actually a 1D variable, so we only have one length to return.
     implicit none
@@ -714,7 +715,8 @@ module MarblChapel
 
   end subroutine get_saved_state_value_1d
 
-  subroutine get_saved_state_value_2d(interop_obj, variable_name, vn_len, ptr_out, ptr_out_len1, ptr_out_len2) bind(C, name='get_saved_state_value_2d')
+  subroutine get_saved_state_value_2d(interop_obj, variable_name, vn_len, &
+    ptr_out, ptr_out_len1, ptr_out_len2) bind(C, name='get_saved_state_value_2d')
     ! This routine populates ptr_out and ptr_out_len with the value of the saved state variable and its length.
     ! While the saved state variable uses '3d' in its name, it is actually a 2D variable, so we only have two lengths to return.
     implicit none
@@ -793,7 +795,8 @@ module MarblChapel
 
   end subroutine get_saved_state_value_2d
 
-  subroutine set_saved_state_value_1d(interop_obj, variable_name, vn_len, data_ptr, data_len) bind(C, name='set_saved_state_value_1d')
+  subroutine set_saved_state_value_1d(interop_obj, variable_name, vn_len, &
+    data_ptr, data_len) bind(C, name='set_saved_state_value_1d')
     implicit none
     ! Parameters
     type(marblInteropType), intent(inout) :: interop_obj
@@ -845,7 +848,8 @@ module MarblChapel
     print *, 'Failed to set saved state value. Could not find variable with name "', v_name, '"'
   end subroutine set_saved_state_value_1d
 
-  subroutine set_saved_state_value_2d(interop_obj, variable_name, vn_len, data_ptr, data_len1, data_len2) bind(C, name='set_saved_state_value_2d')
+  subroutine set_saved_state_value_2d(interop_obj, variable_name, vn_len, &
+    data_ptr, data_len1, data_len2) bind(C, name='set_saved_state_value_2d')
     implicit none
     ! Parameters
     type(marblInteropType), intent(inout) :: interop_obj
@@ -932,7 +936,8 @@ module MarblChapel
     num_states = marbl_instance%surface_flux_saved_state%saved_state_cnt
   end subroutine num_surface_flux_saved_states
 
-  subroutine get_interior_tendency_saved_state_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_interior_tendency_saved_state_name')
+  subroutine get_interior_tendency_saved_state_name(interop_obj, idx, &
+    ptr_out, ptr_out_len, dim_out) bind(C, name='get_interior_tendency_saved_state_name')
     ! This subroutine returns the name of the interior tendency saved state at the given index
     implicit none
     ! Parameters
@@ -969,7 +974,8 @@ module MarblChapel
     end if
   end subroutine get_interior_tendency_saved_state_name
 
-  subroutine get_surface_flux_saved_state_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_surface_flux_saved_state_name')
+  subroutine get_surface_flux_saved_state_name(interop_obj, idx, &
+    ptr_out, ptr_out_len, dim_out) bind(C, name='get_surface_flux_saved_state_name')
     ! This subroutine returns the name of the surface flux saved state at the given index
     implicit none
     ! Parameters

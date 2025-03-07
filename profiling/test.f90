@@ -15,7 +15,6 @@ subroutine using_allocatable( num_levels, num_PAR_subcols, &
   type(marbl_interface_class), allocatable :: wrappers(:)
   allocate(wrappers(num_wrappers))
 
-  print *, 'using allocated array', num_wrappers
   do i =1,num_wrappers
     call wrappers(i)%init(gcm_num_levels=num_levels, &
         gcm_num_PAR_subcols=num_PAR_subcols, &
@@ -40,7 +39,6 @@ subroutine using_pointer( num_levels, num_PAR_subcols, &
   type(marbl_interface_class), pointer :: marbl_ptr
   type(c_ptr) :: marbl_c_ptr
 
-  print *, "using pointers", num_wrappers
   do i = 1,num_wrappers
     allocate(marbl_ptr)
     marbl_c_ptr = c_loc(marbl_ptr)
@@ -116,7 +114,7 @@ real(c_double), dimension(60) :: zt = [ &
     
     read(arg2, *) num_wrappers
 
-    write(*, "(A)", advance="NO") "Fortran Version "
+    write(*, "(A)", advance="NO") "Fortran,"
     ! Trim and compare
     select case (trim(arg))
         case ("pointer")

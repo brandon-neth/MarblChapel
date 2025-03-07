@@ -31,4 +31,4 @@ runAll: fortranTest.exe chapelTest.exe cTest.exe
 	/usr/bin/time -f "%e seconds" ./fortranTest.exe allocatable 1000
 	/usr/bin/time -f "%e seconds" ./cTest.exe pointer 1000
 	/usr/bin/time -f "%e seconds" ./cTest.exe allocatable 1000
-	/usr/bin/time -f "%e seconds" ./chapelTest.exe --n=1000
+	/usr/bin/time -f "%e seconds" ./chapelTest.exe -nl1 --n=1000
