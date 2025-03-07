@@ -18,12 +18,16 @@ module Marbl {
 
   use CTypes;
   use Map;
+  use BlockDist;
   require "MarblChapel.h";
 
   // Used to ensure only one marblInteropType has access to the settings files
-  // at a time, as Fortran does not support concurrent reads to the same file
-  var initBarrier: sync bool = true;
+  // at a time, as Fortran does not support one process making concurrent reads
+  // to the same file
 
+  var barrierDist = blockDist.createDomain({0..<numLocales});
+  var initBarriers: [barrierDist] sync bool = true;
+  var initBarrier: sync bool = true;
 
   /* 
     The main driver of MARBL interoperability. Supports shared- and 
@@ -61,9 +65,9 @@ module Marbl {
 
      */
     proc importSettings(filename) {
-      var lock = initBarrier.readFE();
+      var lock = initBarriers[here.id].readFE();
       import_settings(this, filename.c_str(), filename.size : c_int);
-      initBarrier.writeEF(lock);
+      initBarriers[here.id].writeEF(lock);
     }
 
     /*
@@ -98,11 +102,11 @@ module Marbl {
     proc initMarblInstance(const ref numLevels, const ref numParSubcols,
       const ref numElementsSurfaceFlux, ref deltaZ, ref zw, ref zt,
       const ref activeLevelCount) {
-      var lock = initBarrier.readFE();
+      var lock = initBarriers[here.id].readFE();
       init_marbl_instance(this, numLevels: c_int, numParSubcols: c_int, 
       numElementsSurfaceFlux: c_int, c_ptrTo(deltaZ), c_ptrTo(zw), c_ptrTo(zt), 
       activeLevelCount: c_int);
-      initBarrier.writeEF(lock);
+      initBarriers[here.id].writeEF(lock);
     }
 
     /*
