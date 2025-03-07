@@ -635,4 +635,372 @@ module MarblChapel
     end if
     
   end subroutine get_surface_flux_diagnostic_name
+
+  subroutine get_saved_state_value_1d(interop_obj, variable_name, vn_len, ptr_out, ptr_out_len) bind(C, name='get_saved_state_value_1d')
+    ! This routine populates ptr_out and ptr_out_len with the value of the saved state variable and its length.
+    ! While the saved state variable uses '2d' in its name, it is actually a 1D variable, so we only have one length to return.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: vn_len
+    character(kind=c_char), dimension(vn_len), intent(in) :: variable_name
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(kind=c_char, len=vn_len) :: v_name
+    integer :: idx
+    logical :: found
+    real(c_double), pointer, dimension(:) :: data_ptr
+    type(c_ptr) :: ptr_out2
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Transfer the C-style string to a Fortran-style string
+    v_name = transfer(variable_name, v_name)
+
+    ! Find the correct saved state variable index
+    found = .false.
+
+    ! First check interior tendency saved state
+    do idx = 1,marbl_instance%interior_tendency_saved_state%saved_state_cnt
+      if (trim(marbl_instance%interior_tendency_saved_state%state(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%interior_tendency_saved_state%state(idx)%long_name) == v_name) then
+        found = .true.
+        if ('none' .ne. trim(marbl_instance%interior_tendency_saved_state%state(idx)%vertical_grid)) then
+          print *, 'Warning: saved state variable ', v_name, ' is not a 1D variable.'
+          ptr_out = c_null_ptr
+          ptr_out_len = -1
+          return
+        end if
+        data_ptr => marbl_instance%interior_tendency_saved_state%state(idx)%field_2d
+        ptr_out_len = size(marbl_instance%interior_tendency_saved_state%state(idx)%field_2d)
+      end if
+    end do
+
+    ! Second, check surface flux saved state
+    do idx = 1,marbl_instance%surface_flux_saved_state%saved_state_cnt
+      if (trim(marbl_instance%surface_flux_saved_state%state(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%surface_flux_saved_state%state(idx)%long_name) == v_name) then
+        found = .true.
+        if ('none' .ne. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
+          print *, 'Warning: saved state variable ', v_name, ' is not a 1D variable.'
+          ptr_out = c_null_ptr
+          ptr_out_len = -1
+          return
+        end if
+        data_ptr => marbl_instance%surface_flux_saved_state%state(idx)%field_2d
+        ptr_out_len = size(marbl_instance%surface_flux_saved_state%state(idx)%field_2d)
+      end if
+    end do
+
+    if (.not. found) then
+      print *, 'Failed to get saved state value. Could not find variable with name "', v_name, '"'
+      ptr_out = c_null_ptr
+      ptr_out_len = -1
+      return
+    end if
+    
+    ! Return the pointer to the data and its length
+    ptr_out = c_loc(data_ptr)
+
+  end subroutine get_saved_state_value_1d
+
+  subroutine get_saved_state_value_2d(interop_obj, variable_name, vn_len, ptr_out, ptr_out_len1, ptr_out_len2) bind(C, name='get_saved_state_value_2d')
+    ! This routine populates ptr_out and ptr_out_len with the value of the saved state variable and its length.
+    ! While the saved state variable uses '3d' in its name, it is actually a 2D variable, so we only have two lengths to return.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: vn_len
+    character(kind=c_char), dimension(vn_len), intent(in) :: variable_name
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len1
+    integer(c_int), intent(out) :: ptr_out_len2
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(kind=c_char, len=vn_len) :: v_name
+    integer :: idx
+    logical :: found
+    real(c_double), pointer, dimension(:,:) :: data_ptr
+    type(c_ptr) :: ptr_out2
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Transfer the C-style string to a Fortran-style string
+    v_name = transfer(variable_name, v_name)
+
+    ! Find the correct saved state variable index
+    found = .false.
+
+    ! First check interior tendency saved state
+    do idx = 1,marbl_instance%interior_tendency_saved_state%saved_state_cnt
+      if (trim(marbl_instance%interior_tendency_saved_state%state(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%interior_tendency_saved_state%state(idx)%long_name) == v_name) then
+        found = .true.
+        if ('none' .eq. trim(marbl_instance%interior_tendency_saved_state%state(idx)%vertical_grid)) then
+          print *, 'Warning: saved state variable ', v_name, ' is not a 2D variable.'
+          ptr_out = c_null_ptr
+          ptr_out_len1 = -1
+          ptr_out_len2 = -1
+          return
+        end if
+        data_ptr => marbl_instance%interior_tendency_saved_state%state(idx)%field_3d
+        ptr_out_len1 = size(marbl_instance%interior_tendency_saved_state%state(idx)%field_3d,1)
+        ptr_out_len2 = size(marbl_instance%interior_tendency_saved_state%state(idx)%field_3d,2)
+      end if
+    end do
+
+    ! Second, check surface flux saved state
+    do idx = 1,marbl_instance%surface_flux_saved_state%saved_state_cnt
+      if (trim(marbl_instance%surface_flux_saved_state%state(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%surface_flux_saved_state%state(idx)%long_name) == v_name) then
+        found = .true.
+        if ('none' .eq. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
+          print *, 'Warning: saved state variable ', v_name, ' is not a 2D variable.'
+          ptr_out = c_null_ptr
+          ptr_out_len1 = -1
+          ptr_out_len2 = -1
+          return
+        end if
+        data_ptr => marbl_instance%surface_flux_saved_state%state(idx)%field_3d
+        ptr_out_len1 = size(marbl_instance%surface_flux_saved_state%state(idx)%field_3d,1)
+        ptr_out_len2 = size(marbl_instance%surface_flux_saved_state%state(idx)%field_3d,2)
+      end if
+    end do
+
+    if (.not. found) then
+      print *, 'Failed to get saved state value. Could not find variable with name "', v_name, '"'
+      ptr_out = c_null_ptr
+      ptr_out_len1 = -1
+      ptr_out_len2 = -1
+      return
+    end if
+    
+    ! Return the pointer to the data and its length
+    ptr_out = c_loc(data_ptr)
+
+  end subroutine get_saved_state_value_2d
+
+  subroutine set_saved_state_value_1d(interop_obj, variable_name, vn_len, data_ptr, data_len) bind(C, name='set_saved_state_value_1d')
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: vn_len
+    character(kind=c_char), dimension(vn_len), intent(in) :: variable_name
+    type(c_ptr), intent(in) :: data_ptr
+    integer(c_int), intent(in) :: data_len
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(kind=c_char, len=vn_len) :: v_name
+    integer :: idx 
+    logical :: found
+    real(c_double), pointer, dimension(:) :: data_array
+
+    print *, 'in set_saved_state_value_1d'
+    print *, 'cptr, fortran side: ', data_ptr
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Transfer the C-style string to a Fortran-style string
+    v_name = transfer(variable_name, v_name)
+    print *, 'converted string, variable name is: ', v_name
+    print *, 'getting fortran pointer'
+
+    ! Get a fortran pointer to the data to copy in
+    call c_f_pointer(data_ptr, data_array, [data_len])
+    print *, 'data_array: ', data_array
+    ! First check interior tendency saved state
+    do idx = 1,marbl_instance%interior_tendency_saved_state%saved_state_cnt
+      if (trim(marbl_instance%interior_tendency_saved_state%state(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%interior_tendency_saved_state%state(idx)%long_name) == v_name) then
+        if ('none' .ne. trim(marbl_instance%interior_tendency_saved_state%state(idx)%vertical_grid)) then
+          print *, 'Warning: saved state variable ', v_name, ' is not a 1D variable.'
+          return
+        end if
+        marbl_instance%interior_tendency_saved_state%state(idx)%field_2d = data_array
+        return
+      end if
+    end do
+
+    ! Second, check surface flux saved state
+    do idx = 1,marbl_instance%surface_flux_saved_state%saved_state_cnt
+      if (trim(marbl_instance%surface_flux_saved_state%state(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%surface_flux_saved_state%state(idx)%long_name) == v_name) then
+        if ('none' .ne. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
+          print *, 'Warning: saved state variable ', v_name, ' is not a 1D variable.'
+          return
+        end if
+        marbl_instance%surface_flux_saved_state%state(idx)%field_2d = data_array
+        return
+      end if
+    end do
+
+    ! If we get here, we didn't find the variable
+    print *, 'Failed to set saved state value. Could not find variable with name "', v_name, '"'
+  end subroutine set_saved_state_value_1d
+
+  subroutine set_saved_state_value_2d(interop_obj, variable_name, vn_len, data_ptr, data_len1, data_len2) bind(C, name='set_saved_state_value_2d')
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: vn_len
+    character(kind=c_char), dimension(vn_len), intent(in) :: variable_name
+    type(c_ptr), intent(in) :: data_ptr
+    integer(c_int), intent(in) :: data_len1
+    integer(c_int), intent(in) :: data_len2
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(kind=c_char, len=vn_len) :: v_name
+    integer :: idx 
+    logical :: found
+    real(c_double), pointer, dimension(:,:) :: data_array
+
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Transfer the C-style string to a Fortran-style string
+    v_name = transfer(variable_name, v_name)
+
+    ! Get a fortran pointer to the data to copy in
+    call c_f_pointer(data_ptr, data_array, [data_len1, data_len2])
+
+    ! First check interior tendency saved state
+    do idx = 1,marbl_instance%interior_tendency_saved_state%saved_state_cnt
+      if (trim(marbl_instance%interior_tendency_saved_state%state(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%interior_tendency_saved_state%state(idx)%long_name) == v_name) then
+        if ('none' .eq. trim(marbl_instance%interior_tendency_saved_state%state(idx)%vertical_grid)) then
+          print *, 'Warning: saved state variable ', v_name, ' is not a 2D variable.'
+          return
+        end if
+        marbl_instance%interior_tendency_saved_state%state(idx)%field_3d = data_array
+        return
+      end if
+    end do
+
+    ! Second, check surface flux saved state
+    do idx = 1,marbl_instance%surface_flux_saved_state%saved_state_cnt
+      if (trim(marbl_instance%surface_flux_saved_state%state(idx)%short_name) == v_name &
+          .or. trim(marbl_instance%surface_flux_saved_state%state(idx)%long_name) == v_name) then
+        if ('none' .eq. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
+          print *, 'Warning: saved state variable ', v_name, ' is not a 2D variable.'
+          return
+        end if
+        marbl_instance%surface_flux_saved_state%state(idx)%field_3d = data_array
+        return
+      end if
+    end do
+
+    ! If we get here, we didn't find the variable
+    print *, 'Failed to set saved state value. Could not find variable with name "', v_name, '"'
+  end subroutine set_saved_state_value_2d
+
+  subroutine num_interior_tendency_saved_states(interop_obj, num_states) bind(C, name='num_interior_tendency_saved_states')
+    ! This subroutine returns the number of interior tendency saved states
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(out) :: num_states
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Return the number of interior tendency saved states
+    num_states = marbl_instance%interior_tendency_saved_state%saved_state_cnt
+  end subroutine num_interior_tendency_saved_states
+
+  subroutine num_surface_flux_saved_states(interop_obj, num_states) bind(C, name='num_surface_flux_saved_states')
+    ! This subroutine returns the number of surface flux saved states
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(out) :: num_states
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Return the number of surface flux saved states
+    num_states = marbl_instance%surface_flux_saved_state%saved_state_cnt
+  end subroutine num_surface_flux_saved_states
+
+  subroutine get_interior_tendency_saved_state_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_interior_tendency_saved_state_name')
+    ! This subroutine returns the name of the interior tendency saved state at the given index
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: idx
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len
+    integer(c_int), intent(out) :: dim_out
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(len=256), pointer :: name
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    if (idx > size(marbl_instance%interior_tendency_saved_state%state)) then
+      print *, 'get_interior_tendency_saved_state_name: Index out of bounds. ', idx
+      ptr_out = c_null_ptr
+      ptr_out_len = -1
+      dim_out = -1
+      return
+    end if
+
+    ! Get the name of the saved state variable
+    allocate(name)
+    name = marbl_instance%interior_tendency_saved_state%state(idx)%short_name
+    
+    ptr_out = c_loc(name)
+    ptr_out_len = len_trim(name)
+    if ('none' .eq. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
+      dim_out = 1
+    else
+      dim_out = 2
+    end if
+  end subroutine get_interior_tendency_saved_state_name
+
+  subroutine get_surface_flux_saved_state_name(interop_obj, idx, ptr_out, ptr_out_len, dim_out) bind(C, name='get_surface_flux_saved_state_name')
+    ! This subroutine returns the name of the surface flux saved state at the given index
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: idx
+    type(c_ptr), intent(out) :: ptr_out
+    integer(c_int), intent(out) :: ptr_out_len
+    integer(c_int), intent(out) :: dim_out
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    character(len=256), pointer :: name
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    if (idx > size(marbl_instance%surface_flux_saved_state%state)) then
+      print *, 'get_surface_flux_saved_state_name: Index out of bounds. ', idx
+      ptr_out = c_null_ptr
+      ptr_out_len = -1
+      dim_out = -1
+      return
+    end if
+
+    ! Get the name of the saved state variable
+    allocate(name)
+    name = marbl_instance%surface_flux_saved_state%state(idx)%short_name
+    
+    ptr_out = c_loc(name)
+    ptr_out_len = len_trim(name)
+    if ('none' .eq. trim(marbl_instance%surface_flux_saved_state%state(idx)%vertical_grid)) then
+      dim_out = 1
+    else
+      dim_out = 2
+    end if
+  end subroutine get_surface_flux_saved_state_name
 end module MarblChapel
