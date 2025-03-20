@@ -8,7 +8,7 @@ clean:
 	rm *.o *.mod *.exe
 
 MarblChapel.o: MarblChapel.f90
-	gfortran -g -I$(marbl_mod_path) -c MarblChapel.f90
+	gfortran -g -I$(marbl_mod_path) -c MarblChapel.f90 -fPIE
 
 test%.exe: test%.chpl Marbl.chpl MarblChapel.h MarblChapel.o
 	chpl -g -lgfortran -L$(fortran_lib_path) -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu MarblChapel.o $< -o $@
