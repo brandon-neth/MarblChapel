@@ -232,7 +232,7 @@ contains
     end if
 
     ! Open history file (writeable / clobber existing)
-    call marbl_netcdf_create(hist_file, ncid_out, driver_status_log)
+    !call marbl_netcdf_create(hist_file, ncid_out, driver_status_log)
     if (driver_status_log%labort_MARBL) then
       print *, 'failed to open history file'
       write(log_message, "(3A)") "marbl_netcdf_create(", trim(hist_file), ")"
@@ -1039,7 +1039,7 @@ contains
       return
     end if
 
-    call marbl_netcdf_close(ncid_out, driver_status_log)
+    !call marbl_netcdf_close(ncid_out, driver_status_log)
     if (driver_status_log%labort_marbl) then
       call driver_status_log%log_error_trace('marbl_netcdf_close(hist_file)', subname)
       return

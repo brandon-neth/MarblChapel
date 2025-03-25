@@ -60,7 +60,6 @@ contains
 
     character(len=*), parameter :: subname = 'marbl_netcdf_mod:marbl_netcdf_open'
     character(len=char_len) :: log_message
-    print *, 'marbl_netcdf_open'
 #ifndef _NETCDF
     ! Abort if not built with -D_NETCDF
     write(log_message, "(3A)") 'Can not call open(', trim(file_name), ') without netCDF support'

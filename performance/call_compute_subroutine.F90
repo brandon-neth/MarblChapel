@@ -68,6 +68,7 @@ Contains
 
     ! --------------------------------------------------------------------------
 
+
     ! 2. Initialize the test (reads grid info, distributes columns, etc)
     call set_domain(size(marbl_instances), unit_system_opt, num_levels, active_level_cnt, lat, &
                     num_PAR_subcols, col_start, col_cnt, grid_data, driver_status_log)
@@ -123,7 +124,9 @@ Contains
 
     ! 5. Initialize diagnostic buffers, define diagnostic fields in output netCDF file, and
     !    read initial conditions / forcing data
+
     !    (a) Set constants
+
     num_tracers = size(marbl_instances(1)%tracer_metadata)
 
     !    (b) Initialize diagnostic buffers
@@ -158,15 +161,13 @@ Contains
             size(marbl_instances(1)%interior_tendency_forcings(m)%field_1d, dim=2)))
       end if
     end do
-
     !    (d) netCDF calls to create history file (dimensions are defined but data is not written)
-    call marbl_io_define_history(marbl_instances, col_cnt, unit_system_opt, driver_status_log)
+    !call marbl_io_define_history(marbl_instances, col_cnt, unit_system_opt, driver_status_log)
     if (driver_status_log%labort_marbl) then
       call driver_status_log%log_error_trace('marbl_io_define_history', subname)
       print *, "Aborting after failing to create history file"
       return
     end if
-
     !    (e) Read initial conditions and forcing data
     do n=1, num_cols
       !      (i) Read tracer values over full column
@@ -205,7 +206,6 @@ Contains
       !    (a) call set_global_scalars() for consistent setting of time-varying scalars
       !        [surface_flux computation doesn't currently have any time-varying scalars]
       call marbl_instances(n)%set_global_scalars('surface_flux')
-
       do col_id_loc = 1, col_cnt(n)
         col_id = col_start(n)+col_id_loc
 
@@ -221,7 +221,7 @@ Contains
           end if
         end do
       end do
-
+      
       !    (d) populate marbl_instances(n)%surface_flux_saved_state (with 0s)
       do m=1, size(marbl_instances(n)%surface_flux_saved_state%state)
         marbl_instances(n)%surface_flux_saved_state%state(m)%field_2d(:) = c0
@@ -260,7 +260,6 @@ Contains
         !      therefore set during initialization. The columns vary in depth, so
         !      the index of the bottom layer must be updated for each column.
         marbl_instances(n)%domain%kmt = active_level_cnt(col_id)
-
         !  (c) copy tracer values into marbl_instances(n)%tracers
         marbl_instances(n)%tracers = tracer_initial_vals(:,:,col_id)
 
@@ -302,13 +301,12 @@ Contains
         call marbl_instances(n)%get_output_for_GCM(output_for_GCM_iopt_total_Chl_3d, total_Chl(:,col_id))
       end do ! column
     end do ! instance
-
     ! --------------------------------------------------------------------------
 
     ! 8. Output netCDF
-    call marbl_io_write_history(marbl_instances(1), surface_fluxes, interior_tendencies,  &
-                                surface_flux_output, total_Chl, tracer_initial_vals,      &
-                                active_level_cnt, driver_status_log)
+    !call marbl_io_write_history(marbl_instances(1), surface_fluxes, interior_tendencies,  &
+    !                            surface_flux_output, total_Chl, tracer_initial_vals,      &
+    !                            active_level_cnt, driver_status_log)
     if (driver_status_log%labort_marbl) then
       call driver_status_log%log_error_trace('marbl_io_write_history', subname)
       print *, "Aborting after failing to write history"
@@ -387,7 +385,6 @@ Contains
     integer :: num_cols
 
     ! 1. Read domain info from netCDF file
-    print *, "reading domain infor from netCDF file"
     call marbl_io_read_domain(unit_system_opt, grid_data, active_level_cnt, lat, num_cols, &
                               num_levels, num_PAR_subcols, driver_status_log)
     if (driver_status_log%labort_marbl) then
