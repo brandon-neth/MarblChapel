@@ -17,7 +17,8 @@ Contains
 
   !****************************************************************************
 
-  subroutine test(marbl_instances, hist_file, unit_system_opt, driver_status_log)
+  subroutine test(marbl_instances, hist_file, unit_system_opt, driver_status_log, &
+    time_io, time_init, time_compute, interior, surface)
 
     use marbl_settings_mod, only : output_for_GCM_iopt_total_Chl_3d
 
@@ -35,6 +36,7 @@ Contains
     character(len=*),                          intent(in)    :: hist_file
     character(len=*),                          intent(in)    :: unit_system_opt
     type(marbl_log_type),                      intent(inout) :: driver_status_log
+    real,                                      intent(inout) :: time_io, time_init, time_compute, interior(5,60,32), surface(1,32,5)
 
     character(len=*), parameter :: subname = 'marbl_call_compute_subroutines_drv:test'
     character(len=*), parameter :: infile = 'call_compute_subroutines.20190718.nc'
@@ -49,11 +51,15 @@ Contains
     type(forcing_fields_type), allocatable, dimension(:)     :: surface_flux_forcings       ! num_forcings
     type(forcing_fields_type), allocatable, dimension(:)     :: interior_tendency_forcings  ! num_forcings
     integer,                   allocatable, dimension(:)     :: active_level_cnt, col_start, col_cnt
+    integer :: a,b
 
     integer :: num_levels, num_cols, num_tracers, m, n, col_id_loc, col_id, num_PAR_subcols
     integer :: sfo_cnt, flux_co2_id, total_surfChl_id, output_id
     type(grid_data_type) :: grid_data
-
+    real :: count_start, count_end, count_rate
+    real :: elapsed
+    
+    call cpu_time(count_start)
     ! 1. Open necessary netCDF files
     !    (a) Input (grid info, forcing fields, initial conditions)
     !    (b) Output (diagnostics)
@@ -65,10 +71,12 @@ Contains
     end if
     write(log_message, "(A, 1X, A)") "* MARBL output will be written to", trim(hist_file)
     call driver_status_log%log_noerror(log_message, subname)
-
+    call cpu_time(count_end)
+    elapsed = real(count_end - count_start)
+    time_io = time_io + elapsed
     ! --------------------------------------------------------------------------
 
-
+    
     ! 2. Initialize the test (reads grid info, distributes columns, etc)
     call set_domain(size(marbl_instances), unit_system_opt, num_levels, active_level_cnt, lat, &
                     num_PAR_subcols, col_start, col_cnt, grid_data, driver_status_log)
@@ -80,7 +88,7 @@ Contains
     num_cols = sum(col_cnt)
 
     ! --------------------------------------------------------------------------
-
+    call cpu_time(count_start)
     ! 3. Initialize each instance of MARBL
     do n=1, size(marbl_instances)
       call marbl_instances(n)%init(gcm_num_levels = num_levels,                &
@@ -96,7 +104,7 @@ Contains
         return
       end if
     end do
-
+    
     ! --------------------------------------------------------------------------
 
     ! 4. Set up memory for fields MARBL returns to GCM
@@ -161,6 +169,11 @@ Contains
             size(marbl_instances(1)%interior_tendency_forcings(m)%field_1d, dim=2)))
       end if
     end do
+    call cpu_time(count_end)
+    elapsed = real(count_end - count_start)
+    time_init = time_init + elapsed
+    
+    call cpu_time(count_start)
     !    (d) netCDF calls to create history file (dimensions are defined but data is not written)
     !call marbl_io_define_history(marbl_instances, col_cnt, unit_system_opt, driver_status_log)
     if (driver_status_log%labort_marbl) then
@@ -196,11 +209,14 @@ Contains
         return
       end if
     end do
-
+    call cpu_time(count_end)
+    elapsed = real(count_end - count_start)
+    time_io = time_io + elapsed
     ! --------------------------------------------------------------------------
     ! Brunt of MARBL computations
     ! --------------------------------------------------------------------------
 
+    
     do n=1, size(marbl_instances)
       ! 6. Call surface_flux_compute() (all columns simultaneously)
       !    (a) call set_global_scalars() for consistent setting of time-varying scalars
@@ -285,7 +301,7 @@ Contains
 
         !  (f) set bot_flux_to_tend(:) [1/dz in level kmt, 0 elsewhere]
         marbl_instances(n)%bot_flux_to_tend(:) = bot_flux_to_tend(:,col_id)
-
+        call cpu_time(count_start)
         !  (g) call interior_tendency_compute()
         call marbl_instances(n)%interior_tendency_compute()
         if (marbl_instances(n)%StatusLog%labort_MARBL) then
@@ -293,14 +309,28 @@ Contains
           print *, "Aborting after failing to compute interior tendencies"
           return
         end if
-
+        
         !  (h) write to diagnostic buffer
         !        Note: passing just col_id => interior tendency diagnostic buffer
         call marbl_io_copy_into_diag_buffer(col_id, marbl_instances(n))
         interior_tendencies(:,:,col_id) = marbl_instances(n)%interior_tendencies(:,:)
         call marbl_instances(n)%get_output_for_GCM(output_for_GCM_iopt_total_Chl_3d, total_Chl(:,col_id))
       end do ! column
+
+     
+      do b = 1,60
+        do a = 1,32
+          interior(n,b,a) = interior(n,b,a) + marbl_instances(n)%interior_tendencies(a,b)
+        end do
+      end do
+      do b = 1,32
+        surface(1,b,n) = surface(1,b,n) + marbl_instances(n)%surface_fluxes(1,b)
+      end do
+      call cpu_time(count_end)
+    elapsed = real(count_end - count_start)
+    time_compute = time_compute + elapsed
     end do ! instance
+    
     ! --------------------------------------------------------------------------
 
     ! 8. Output netCDF
@@ -359,7 +389,7 @@ Contains
     do n=1, size(marbl_instances)
       call marbl_instances(n)%shutdown()
     end do
-
+    
   end subroutine test
 
   !*****************************************************************************
