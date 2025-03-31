@@ -157,8 +157,7 @@ forall (c,t,z) in tracerArrayDomain {
 
 
 var marblWrappers: [1..numColumns] marblInteropType;
-
-for colIdx_ in tracerArrayDomain.dim[0] {
+coforall colIdx_ in tracerArrayDomain.dim[0] {
   var colIdx = colIdx_ : int;
   var columnTracers: [1..nt, 1..nz] c_double = tracerArray[colIdx,..,..];
   
@@ -169,10 +168,21 @@ for colIdx_ in tracerArrayDomain.dim[0] {
   var numParSubcols = columnFraction[colIdx,..].size;  
   var numElementsSurfaceFlux = 5;
 
-
   marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
-  marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]);
+  marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]); 
+}
+coforall colIdx_ in tracerArrayDomain.dim[0] {
+  var colIdx = colIdx_ : int;
+  var columnTracers: [1..nt, 1..nz] c_double = tracerArray[colIdx,..,..];
+  
+  // Initialize and verify it connects to something on the Fortran side
+  var marblWrapper = marblWrappers[colIdx];
+  assert(marblWrapper.marbl_obj:int != 0);
+  
+  var numParSubcols = columnFraction[colIdx,..].size;  
+  var numElementsSurfaceFlux = 5;
 
+  
   // Set surface flux forcing
   marblWrapper.setSurfaceFluxForcingValue("sss", salinity[colIdx, 1]);
   marblWrapper.setSurfaceFluxForcingValue("sst", temperature[colIdx, 1]);
