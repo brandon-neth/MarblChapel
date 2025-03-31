@@ -158,7 +158,7 @@ forall (c,t,z) in tracerArrayDomain {
 
 var marblWrappers: [1..numColumns] marblInteropType;
 
-forall colIdx_ in tracerArrayDomain.dim[0] {
+for colIdx_ in tracerArrayDomain.dim[0] {
   var colIdx = colIdx_ : int;
   var columnTracers: [1..nt, 1..nz] c_double = tracerArray[colIdx,..,..];
   
