@@ -6,9 +6,7 @@ var s: stopwatch;
 var ioTime: real;
 var initTime: real;
 var computeTime: real;
-var surfaceTime: real;
-var interiorSettingTime: real;
-var interiorComputeTime: real;
+var settingTime: real;
 config const numRuns = 1;
 use Marbl;
 use CTypes;
@@ -204,10 +202,11 @@ for i in 1..numRuns {
 
     //Copy surface tracers
     marblWrapper.setSurfaceTracers(columnTracers);
-
+    settingTime += s.elapsed();
+    s.restart();
     // Run surface flux compute
     marblWrapper.surfaceFluxCompute(columnTracers, dt);
-    surfaceTime += s.elapsed();
+    computeTime += s.elapsed();
     s.restart();
 
     // Set interior tendency forcing values
@@ -225,12 +224,12 @@ for i in 1..numRuns {
    
     // Copy interior tracer values
     marblWrapper.setTracers(columnTracers);
-    interiorSettingTime += s.elapsed();
+    settingTime += s.elapsed();
     s.restart();
     // Run interior tendency compute
     marblWrapper.interiorTendencyCompute(columnTracers, dt);
     
-    interiorComputeTime += s.elapsed();
+    computeTime += s.elapsed();
     s.restart();
     // Copy the calculated values back into the global tracer array
     //tracerArray[colIdx,..,..] = columnTracers[..,..];
@@ -242,8 +241,5 @@ for i in 1..numRuns {
 
 }
 
-writeln("IO      Time:   ", ioTime);
-writeln("Init    Time:   ", initTime);
-writeln("Surface Time:   ", surfaceTime);
-writeln("Intr Setting:   ", interiorSettingTime);
-writeln("Intr Compute:   ", interiorComputeTime);
+var values = [numRuns:string, ioTime:string, initTime: string, settingTime: string, computeTime: string];
+writeln("Chapel,", ",".join(values));

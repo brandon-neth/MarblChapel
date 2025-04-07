@@ -18,7 +18,7 @@ Contains
   !****************************************************************************
 
   subroutine test(marbl_instances, hist_file, unit_system_opt, driver_status_log, &
-    time_io, time_init, time_compute, interior, surface)
+    time_io, time_init, time_compute, time_setting, interior, surface)
 
     use marbl_settings_mod, only : output_for_GCM_iopt_total_Chl_3d
 
@@ -36,7 +36,8 @@ Contains
     character(len=*),                          intent(in)    :: hist_file
     character(len=*),                          intent(in)    :: unit_system_opt
     type(marbl_log_type),                      intent(inout) :: driver_status_log
-    real,                                      intent(inout) :: time_io, time_init, time_compute, interior(5,60,32), surface(1,32,5)
+    real,                                      intent(inout) :: time_io, time_init, time_compute, time_setting
+    real, intent(inout) :: interior(5,60,32), surface(1,32,5)
 
     character(len=*), parameter :: subname = 'marbl_call_compute_subroutines_drv:test'
     character(len=*), parameter :: infile = 'call_compute_subroutines.20190718.nc'
@@ -58,6 +59,7 @@ Contains
     type(grid_data_type) :: grid_data
     real :: count_start, count_end, count_rate
     real :: elapsed
+    
     
     call cpu_time(count_start)
     ! 1. Open necessary netCDF files
@@ -221,6 +223,7 @@ Contains
       ! 6. Call surface_flux_compute() (all columns simultaneously)
       !    (a) call set_global_scalars() for consistent setting of time-varying scalars
       !        [surface_flux computation doesn't currently have any time-varying scalars]
+      call cpu_time(count_start)
       call marbl_instances(n)%set_global_scalars('surface_flux')
       do col_id_loc = 1, col_cnt(n)
         col_id = col_start(n)+col_id_loc
@@ -242,7 +245,9 @@ Contains
       do m=1, size(marbl_instances(n)%surface_flux_saved_state%state)
         marbl_instances(n)%surface_flux_saved_state%state(m)%field_2d(:) = c0
       end do
-
+      call cpu_time(count_end)
+      time_setting = time_setting + (count_end - count_start)
+      call cpu_time(count_start)
       !    (e) call surface_flux_compute()
       call marbl_instances(n)%surface_flux_compute()
       if (marbl_instances(n)%StatusLog%labort_MARBL) then
@@ -259,13 +264,14 @@ Contains
         surface_flux_output((col_start(n)+1):(col_start(n)+col_cnt(n)),output_id) = &
                   marbl_instances(n)%surface_flux_output%outputs_for_GCM(output_id)%forcing_field_0d(:)
       end do
-
+      call cpu_time(count_end)
+      time_compute = time_compute + (count_end - count_start)
       ! ------------------------------------------------------------------------
 
       ! 7. Call interior_tendency_compute() (one column at a time)
       do col_id_loc = 1, col_cnt(n)
         col_id = col_start(n)+col_id_loc
-
+        call cpu_time(count_start)
         !  (a) call set_global_scalars() for consistent setting of time-varying scalars
         !      [necessary when running ladjust_bury_coeff, since GCM is responsible
         !       for computing running means of values needed to compute burial coefficients]
@@ -301,6 +307,9 @@ Contains
 
         !  (f) set bot_flux_to_tend(:) [1/dz in level kmt, 0 elsewhere]
         marbl_instances(n)%bot_flux_to_tend(:) = bot_flux_to_tend(:,col_id)
+        call cpu_time(count_end)
+        time_setting = time_setting + (count_end - count_start)
+
         call cpu_time(count_start)
         !  (g) call interior_tendency_compute()
         call marbl_instances(n)%interior_tendency_compute()
@@ -315,9 +324,11 @@ Contains
         call marbl_io_copy_into_diag_buffer(col_id, marbl_instances(n))
         interior_tendencies(:,:,col_id) = marbl_instances(n)%interior_tendencies(:,:)
         call marbl_instances(n)%get_output_for_GCM(output_for_GCM_iopt_total_Chl_3d, total_Chl(:,col_id))
+        call cpu_time(count_end)
+        time_compute = time_compute + (count_end - count_start)
       end do ! column
 
-     
+      call cpu_time(count_start)
       do b = 1,60
         do a = 1,32
           interior(n,b,a) = interior(n,b,a) + marbl_instances(n)%interior_tendencies(a,b)
@@ -327,8 +338,8 @@ Contains
         surface(1,b,n) = surface(1,b,n) + marbl_instances(n)%surface_fluxes(1,b)
       end do
       call cpu_time(count_end)
-    elapsed = real(count_end - count_start)
-    time_compute = time_compute + elapsed
+      elapsed = real(count_end - count_start)
+      time_compute = time_compute + elapsed
     end do ! instance
     
     ! --------------------------------------------------------------------------

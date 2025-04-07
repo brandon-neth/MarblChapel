@@ -35,5 +35,10 @@ marbl_netcdf_mod.o: marbl_netcdf_mod.F90
 chapel-overhead.exe: overhead.chpl
 	chpl -lgfortran -L$(fortran_lib_path) -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu ../Marbl/MarblChapel.o $< -o $@ --ccflags -fPIE -M../Marbl --fast
 
+
+scaling.exe: scaling.chpl
+	chpl -lgfortran -L$(fortran_lib_path) -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu ../Marbl/MarblChapel.o $< -o $@ --ccflags -fPIE -M../Marbl --fast
+
+
 clean: 
 	rm *.o *.mod *.exe

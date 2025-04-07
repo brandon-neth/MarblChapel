@@ -19,6 +19,7 @@ program overhead_fortran
   character(len=10) :: run_num
   real :: time_io, time_init, time_compute
   integer ::a,b
+  character(len=20) :: str_io, str_init, str_compute, str_setting, str_num_runs
   ! Get the first command-line argument
   call get_command_argument(1, arg)
 
@@ -34,7 +35,7 @@ program overhead_fortran
   time_io = 0
   time_init = 0
   time_compute = 0
-  
+  time_setting = 0
 
 
   do i = 1,num_runs
@@ -44,15 +45,21 @@ program overhead_fortran
     end do
     write(run_num, '(I5)') i
     hist_file = trim(run_num) // trim(hist_file_base)
-    call test(marbl_instances, hist_file, unit_system_opt, driver_status_log, time_io, time_init, time_compute, interior, surface)
+    call test(marbl_instances, hist_file, unit_system_opt, driver_status_log, time_io, time_init, time_compute, &
+              time_setting, interior, surface)
     
     deallocate(marbl_instances)
 
   end do
 
-  print *, 'interior and surface to make the compute happen:', interior, surface
-  print '(A, F10.6)', 'IO      Time: ', time_io
-  print '(A, F10.6)', 'Init    Time: ', time_init
-  print '(A, F10.6)', 'Compute Time: ', time_compute
+  write(str_io, '(F7.4)') time_io
+  write(str_init, '(F7.4)') time_init
+  write(str_compute, '(F7.4)') time_compute
+  write(str_setting, '(F7.4)') time_setting
+  write(str_num_runs, '(I0)') num_runs
+  WRITE(0,*) 'interior and surface to make the compute happen:', interior, surface
+
+  write(*,'(A)') 'Fortran,' // trim(str_num_runs) // ',' // trim(str_io) // ',' // trim(str_init) // ',' // &
+    trim(str_setting) // ',' // trim(str_compute)
   
 end program overhead_fortran
