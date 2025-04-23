@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --nodes=8
+#SBATCH --nodes=16
 #SBATCH --time=20:00
 #SBATCH --constraint=cpu
 #SBATCH --account=m4746
