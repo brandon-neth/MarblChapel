@@ -174,6 +174,35 @@ module MarblChapel
     end if
   end subroutine set_surface_flux_forcing_value
 
+  subroutine set_surface_flux_forcing_value_enum(interop_obj, enum_val, &
+    value) bind(C,name='set_surface_flux_forcing_value_enum')
+
+    ! This subroutine sets individual surface flux forcing values using the enum values.
+    ! See Marbl.chpl for the correspondence.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: enum_val
+    real(c_double), intent(in) :: value
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    integer :: idx
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Convert the Chapel-side enum to the correct Fortran-side index
+    call convert_surface_enum_to_idx(marbl_instance, enum_val, idx)
+
+    if (idx >= lbound(marbl_instance%surface_flux_forcings, 1) .and. &
+        idx <= ubound(marbl_instance%surface_flux_forcings, 1)) then
+      marbl_instance%surface_flux_forcings(idx)%field_0d(1) = value
+    else 
+      print *, 'failed to convert enum value to surface flux forcing index: ', enum_val
+    end if
+
+  end subroutine set_surface_flux_forcing_value_enum
+
   subroutine set_surface_tracers(interop_obj, nt, nz, tracer_array) bind(C,name='set_surface_tracers')
     ! This subroutine copies the tracer values into the the MARBL instance for 
     ! computing the surface fluxes
@@ -307,6 +336,143 @@ module MarblChapel
     end if
   end subroutine set_interior_tendency_forcing_scalar
 
+  subroutine convert_interior_enum_to_idx(marbl_instance, enum, idx)
+    ! This subroutine converts the Chapel-side enum value to the 
+    ! corresponding index in the MARBL instance for interior fluxes.
+    implicit none
+    ! Parameters
+    type(marbl_interface_class), pointer :: marbl_instance
+    integer(c_int), intent(in) :: enum
+    integer(c_int), intent(out) :: idx
+
+    select case (enum)
+      case (1)
+        idx = marbl_instance%interior_tendency_forcing_ind%dustflux_id
+      case (2)
+        idx = marbl_instance%interior_tendency_forcing_ind%PAR_col_frac_id
+      case (3)
+        idx = marbl_instance%interior_tendency_forcing_ind%surf_shortwave_id 
+      case (4)
+        idx = marbl_instance%interior_tendency_forcing_ind%potemp_id     
+      case (5)
+        idx = marbl_instance%interior_tendency_forcing_ind%salinity_id   
+      case (6)
+        idx = marbl_instance%interior_tendency_forcing_ind%pressure_id   
+      case (7)
+        idx = marbl_instance%interior_tendency_forcing_ind%fesedflux_id  
+      case (8)
+        idx = marbl_instance%interior_tendency_forcing_ind%o2_consumption_scalef_id
+      case (9)
+        idx = marbl_instance%interior_tendency_forcing_ind%p_remin_scalef_id
+      case default
+        idx = -1
+    end select
+
+  end subroutine convert_interior_enum_to_idx
+
+  subroutine convert_surface_enum_to_idx(marbl_instance, enum, idx)
+    ! This subroutine converts the Chapel-side enum value to the 
+    ! corresponding index in the MARBL instance for surface fluxes.
+    implicit none
+    ! Parameters
+    type(marbl_interface_class), pointer :: marbl_instance
+    integer(c_int), intent(in) :: enum
+    integer(c_int), intent(out) :: idx
+
+    select case (enum)
+      case (1)
+        idx = marbl_instance%surface_flux_forcing_ind%u10_sqr_id
+      case (2)
+        idx = marbl_instance%surface_flux_forcing_ind%ifrac_id
+      case (3)
+        idx = marbl_instance%surface_flux_forcing_ind%sst_id
+      case (4)
+        idx = marbl_instance%surface_flux_forcing_ind%sss_id
+      case (5)
+        idx = marbl_instance%surface_flux_forcing_ind%atm_pressure_id
+      case (6)
+        idx = marbl_instance%surface_flux_forcing_ind%xco2_id
+      case (7)
+        idx = marbl_instance%surface_flux_forcing_ind%xco2_alt_co2_id
+      case (8)
+        idx = marbl_instance%surface_flux_forcing_ind%dust_flux_id
+      case (9)
+        idx = marbl_instance%surface_flux_forcing_ind%iron_flux_id
+      case (10)
+        idx = marbl_instance%surface_flux_forcing_ind%nox_flux_id
+      case (11)
+        idx = marbl_instance%surface_flux_forcing_ind%nhy_flux_id
+      case (12)
+        idx = marbl_instance%surface_flux_forcing_ind%ext_C_flux_id
+      case (13)
+        idx = marbl_instance%surface_flux_forcing_ind%ext_P_flux_id
+      case (14)
+        idx = marbl_instance%surface_flux_forcing_ind%ext_Si_flux_id
+      case (15)
+        idx = marbl_instance%surface_flux_forcing_ind%d13c_id
+      case (16)
+        idx = marbl_instance%surface_flux_forcing_ind%d14c_id
+      case default
+        idx = -1
+    end select
+
+  end subroutine convert_surface_enum_to_idx
+
+
+  subroutine set_interior_tendency_forcing_array_enum(interop_obj, enum_val, &
+    data, num_elements) bind(C, name='set_interior_tendency_forcing_array_enum')
+    ! This subroutine sets an interior tendency forcing vector using the enum values. 
+    ! See Marbl.chpl for the correspondence.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: enum_val, num_elements
+    real(c_double), intent(in) :: data(num_elements)
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    integer :: idx
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Convert the Chapel-side enum to the correct Fortran-side index
+    call convert_interior_enum_to_idx(marbl_instance, enum_val, idx)
+
+    if (idx >= lbound(marbl_instance%interior_tendency_forcings, 1) .and. &
+        idx <= ubound(marbl_instance%interior_tendency_forcings, 1)) then
+      marbl_instance%interior_tendency_forcings(idx)%field_1d(:,1) = 0.0_r8
+      marbl_instance%interior_tendency_forcings(idx)%field_1d(1:num_elements,1) = data(:)
+    else 
+      print *, 'failed to convert enum value to interior tendency index: ', enum_val
+    end if
+    
+  end subroutine set_interior_tendency_forcing_array_enum
+
+  subroutine set_interior_tendency_forcing_scalar_enum(interop_obj, enum_val, &
+    value) bind(C, name='set_interior_tendency_forcing_scalar_enum')
+    ! This subroutine sets an interior tendency forcing vector using the enum values. 
+    ! See Marbl.chpl for the correspondence.
+    implicit none
+    ! Parameters
+    type(marblInteropType), intent(inout) :: interop_obj
+    integer(c_int), intent(in) :: enum_val
+    real(c_double), intent(in) :: value
+    ! Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    integer :: idx
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Convert the Chapel-side enum to the correct Fortran-side index
+    call convert_surface_enum_to_idx(marbl_instance, enum_val, idx)
+    if (idx >= lbound(marbl_instance%interior_tendency_forcings, 1) .and. &
+        idx <= ubound(marbl_instance%interior_tendency_forcings, 1)) then
+      marbl_instance%interior_tendency_forcings(idx)%field_0d(1) = value
+    else 
+      print *, 'failed to convert enum value to interior tendency index: ', enum_val
+    end if
+  end subroutine set_interior_tendency_forcing_scalar_enum
 
   subroutine set_tracers(interop_obj, nt, nz, tracer_array) bind(C,name='set_tracers')
     ! This subroutine copies the tracer values into the the MARBL instance for 

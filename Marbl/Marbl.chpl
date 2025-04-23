@@ -128,9 +128,21 @@ module Marbl {
 
       :arg value: The value to use for the the surface flux forcing
      */
-    proc setSurfaceFluxForcingValue(const ref variableName, const ref value) {
+    proc setSurfaceFluxForcingValue(const ref variableName: string, const ref value) {
       set_surface_flux_forcing_value(this, variableName.c_str(),
         variableName.size: c_int, value: c_double);
+    }
+
+    /*
+      Sets a surface flux forcing value in the Fortran-side MARBL instance 
+        using the SurfaceFluxForcingIndex enum. 
+
+      :arg idx: The enum value  of the surface flux forcing value to set.
+
+      :arg value: The value to use for the the surface flux forcing
+     */
+    proc setSurfaceFluxForcingValue(const ref idx: SurfaceFluxForcingIndex, const ref value) {
+      set_surface_flux_forcing_value_enum(this, idx: c_int, value: c_double);
     }
 
     /* 
@@ -169,17 +181,33 @@ module Marbl {
       Copies an array into one of MARBL's interior tendency forcing variables. 
 
       :arg variableName: The name of the interior tendency forcing variable to
-      set
+      set.
 
       :arg data: The array of data to copy into the MARBL instance
 
       :arg numElements: Optional. The number of elements to copy into the MARBL
       instance. Default is the full length of `data`.
      */
-    proc setInteriorTendencyForcingArray(variableName, ref data, numElements=data.size) {
+    proc setInteriorTendencyForcingArray(variableName: string, ref data, numElements=data.size) {
       set_interior_tendency_forcing_array(this, 
         variableName.c_str(), variableName.size : c_int, 
         c_ptrTo(data), numElements: c_int);
+    }
+
+    /*
+      Copies an array into one of MARBL's interior tendency forcing variables. 
+
+      :arg variableIndex: The name of the interior tendency forcing variable to
+      set.
+
+      :arg data: The array of data to copy into the MARBL instance
+
+      :arg numElements: Optional. The number of elements to copy into the MARBL
+      instance. Default is the full length of `data`.
+     */
+    proc setInteriorTendencyForcingArray(variableIndex: InteriorTendencyForcingIndex, ref data, numElements=data.size) {
+      set_interior_tendency_forcing_array_enum(this, 
+        variableIndex:c_int, c_ptrTo(data), numElements: c_int);
     }
 
     /*
@@ -189,9 +217,13 @@ module Marbl {
 
       :arg value: The value to copy into the MARBL instance
      */
-    proc setInteriorTendencyForcingScalar(variableName, value) {
+    proc setInteriorTendencyForcingScalar(variableName: string, value) {
       set_interior_tendency_forcing_scalar(this, variableName.c_str(),
         variableName.size : c_int, value: c_double);
+    }
+
+    proc setInteriorTendencyForcingScalar(idx: InteriorTendencyForcingIndex, value) {
+      set_interior_tendency_forcing_scalar_enum(this, idx: c_int, value: c_double);
     }
 
     /* 
@@ -403,6 +435,36 @@ module Marbl {
     }
   } // extern record marblInteropType
 
+  enum InteriorTendencyForcingIndex {
+    DustFlux=1,
+    PARColumnFraction,
+    SurfaceShortwave,
+    PotentialTemperature,
+    Salinity,
+    Pressure,
+    IronSedimentFlux,
+    O2ConsumptionScale,
+    PReminScale
+  } // enum InteriorTendencyForcingIndex
+
+  enum SurfaceFluxForcingIndex {
+    U10Sqr=1,
+    IceFraction,
+    SurfaceTemperature,
+    SurfaceSalinity,
+    AtmosphericPressure,
+    CO2,
+    CO2Alt,
+    DustFlux,
+    IronFlux,
+    NOxFlux,
+    NHyFlux,
+    ExtCFlux,
+    ExtPFlux,
+    extSiFlux,
+    D13C,
+    D14C
+  }
   extern proc init_interop_obj(const ref marblWrapper: marblInteropType);
   
   extern proc deinit_interop_obj(const ref marblWrapper: marblInteropType);
@@ -418,6 +480,10 @@ module Marbl {
   extern proc set_surface_flux_forcing_value(const ref marblWrapper: marblInteropType,
     variable_name: c_ptrConst(c_char), const ref vn_len: c_int, 
     const ref value: c_double);
+
+  
+  extern proc set_surface_flux_forcing_value_enum(const ref marblWrapper: marblInteropType,
+    const ref enum_val: c_int, const ref value: c_double);
 
   extern proc set_surface_tracers(const ref marblWrapper: marblInteropType, 
     const ref nt: c_int, const ref nz: c_int, tracer_array: c_ptr(c_double));
@@ -435,6 +501,13 @@ module Marbl {
   extern proc set_interior_tendency_forcing_scalar(const ref interop_obj: marblInteropType,
     variable_name: c_ptrConst(c_char), const ref vn_len: c_int, const ref value : c_double);
   
+
+  extern proc set_interior_tendency_forcing_array_enum(const ref interop_obj: marblInteropType,
+    const ref enum_val: c_int, data: c_ptr(c_double), const ref num_elements: c_int);
+
+  extern proc set_interior_tendency_forcing_scalar_enum(const ref interop_obj: marblInteropType,
+    const ref enum_val: c_int, const ref value : c_double);
+
   extern proc set_tracers(const ref marblWrapper: marblInteropType, 
     const ref nt: c_int, const ref nz: c_int, tracer_array: c_ptr(c_double));
 

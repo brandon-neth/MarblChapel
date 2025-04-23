@@ -23,6 +23,9 @@ void init_marbl_instance(struct marblInteropType * interop_obj,
 void set_surface_flux_forcing_value(struct marblInteropType * interop_obj,
   const char * variable_name, int * vn_len, double * value);
 
+  void set_surface_flux_forcing_value_enum(struct marblInteropType * interop_obj,
+    int * enum_val, double * value);
+
 void set_surface_tracers(struct marblInteropType * interop_obj,
   int * nt, int * nz, double * tracer_array);
 
@@ -34,8 +37,16 @@ void update_surface_fluxes(struct marblInteropType * interop_obj,
 void set_interior_tendency_forcing_array(struct marblInteropType * interop_obj, 
   const char * variable_name, int* vn_len, double * data, int * num_elements);
 
+  
+
 void set_interior_tendency_forcing_scalar(struct marblInteropType * interop_obj, 
   const char * variable_name, int* vn_len, double * value);
+
+void set_interior_tendency_forcing_array_enum(struct marblInteropType * interop_obj, 
+    int * enum_val, double * data, int * num_elements);
+
+void set_interior_tendency_forcing_scalar_enum(struct marblInteropType * interop_obj, 
+  int * enum_val, double * value);
 
 void set_tracers(struct marblInteropType * interop_obj,
   int * nt, int * nz, double * tracer_array);
