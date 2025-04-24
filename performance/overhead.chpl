@@ -221,10 +221,13 @@ for i in 1..numRuns {
     marblWrapper.setInteriorTendencyForcingArray("Pressure", pressure[colIdx,..], activeLevelCount[colIdx]);
     marblWrapper.setInteriorTendencyForcingArray("O2 Consumption Scale Factor", o2Factor[colIdx,..], activeLevelCount[colIdx]);
     marblWrapper.setInteriorTendencyForcingArray("Iron Sediment Flux", scaledIronSed[colIdx,..], activeLevelCount[colIdx]);
-   
+    var interiorTime = s.elapsed();
     // Copy interior tracer values
     marblWrapper.setTracers(columnTracers);
+    var tracerTime = s.elapsed() - interiorTime;
     settingTime += s.elapsed();
+    writeln("Interior setting time: ", interiorTime);
+    writeln("Tracer setting time: ", tracerTime);
     s.restart();
     // Run interior tendency compute
     marblWrapper.interiorTendencyCompute(columnTracers, dt);
