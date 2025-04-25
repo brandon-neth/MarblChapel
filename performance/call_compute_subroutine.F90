@@ -18,7 +18,8 @@ Contains
   !****************************************************************************
 
   subroutine test(marbl_instances, hist_file, unit_system_opt, driver_status_log, &
-    time_io, time_init, time_compute, time_surface, time_interior, interior, surface)
+    time_io, time_init, time_setting_surface, time_setting_interior, &
+    time_compute_surface, time_compute_interior, interior, surface)
 
     use marbl_settings_mod, only : output_for_GCM_iopt_total_Chl_3d
 
@@ -36,7 +37,9 @@ Contains
     character(len=*),                          intent(in)    :: hist_file
     character(len=*),                          intent(in)    :: unit_system_opt
     type(marbl_log_type),                      intent(inout) :: driver_status_log
-    real,                                      intent(inout) :: time_io, time_init, time_compute, time_surface, time_interior
+    real,                                      intent(inout) :: time_io, time_init, time_setting_surface, &
+                                                                time_setting_interior, time_compute_surface, &
+                                                                time_compute_interior
     real, intent(inout) :: interior(5,60,32), surface(1,32,5)
 
     character(len=*), parameter :: subname = 'marbl_call_compute_subroutines_drv:test'
@@ -246,7 +249,7 @@ Contains
         marbl_instances(n)%surface_flux_saved_state%state(m)%field_2d(:) = c0
       end do
       call system_clock(count_end)
-      time_surface = time_surface + (real(count_end - count_start) / real(count_rate))
+      time_setting_surface = time_setting_surface + (real(count_end - count_start) / real(count_rate))
 
       call system_clock(count_start)
       !    (e) call surface_flux_compute()
@@ -266,7 +269,7 @@ Contains
                   marbl_instances(n)%surface_flux_output%outputs_for_GCM(output_id)%forcing_field_0d(:)
       end do
       call system_clock(count_end)
-      time_compute = time_compute + (real(count_end - count_start) / real(count_rate))
+      time_compute_surface = time_compute_surface + (real(count_end - count_start) / real(count_rate))
       ! ------------------------------------------------------------------------
 
       ! 7. Call interior_tendency_compute() (one column at a time)
@@ -309,7 +312,7 @@ Contains
         !  (f) set bot_flux_to_tend(:) [1/dz in level kmt, 0 elsewhere]
         marbl_instances(n)%bot_flux_to_tend(:) = bot_flux_to_tend(:,col_id)
         call system_clock(count_end)
-        time_interior = time_interior + (real(count_end - count_start) / real(count_rate))
+        time_setting_interior = time_setting_interior + (real(count_end - count_start) / real(count_rate))
 
         call system_clock(count_start)
         !  (g) call interior_tendency_compute()
@@ -326,7 +329,7 @@ Contains
         interior_tendencies(:,:,col_id) = marbl_instances(n)%interior_tendencies(:,:)
         call marbl_instances(n)%get_output_for_GCM(output_for_GCM_iopt_total_Chl_3d, total_Chl(:,col_id))
         call system_clock(count_end)
-        time_compute = time_compute + (real(count_end - count_start) / real(count_rate))
+        time_compute_interior = time_compute_interior + (real(count_end - count_start) / real(count_rate))
       end do ! column
 
       call system_clock(count_start)
@@ -340,7 +343,7 @@ Contains
       end do
       call system_clock(count_end)
       elapsed = real(count_end - count_start) / real(count_rate)
-      time_compute = time_compute + elapsed
+      time_compute_interior = time_compute_interior + elapsed
     end do ! instance
     
     ! --------------------------------------------------------------------------

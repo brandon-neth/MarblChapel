@@ -5,10 +5,11 @@ var s: stopwatch;
 
 var ioTime: real;
 var initTime: real;
-var computeTime: real;
-var settingsTime: real;
-var surfaceFluxTime: real;
-var interiorTendencyTime: real;
+var surfaceSettingTime: real, 
+    interiorSettingTime: real, 
+    surfaceComputeTime: real, 
+    interiorComputeTime: real;
+var configTime: real;
 config const numRuns = 1;
 use Marbl;
 use CTypes;
@@ -186,7 +187,7 @@ for i in 1..numRuns {
 
     s.restart();
     marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
-    settingsTime += s.elapsed();
+    configTime += s.elapsed();
     s.restart();
     marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]);
     initTime += s.elapsed();
@@ -206,11 +207,11 @@ for i in 1..numRuns {
 
     //Copy surface tracers
     marblWrapper.setSurfaceTracers(columnTracers);
-    surfaceFluxTime += s.elapsed();
+    surfaceSettingTime += s.elapsed();
     s.restart();
     // Run surface flux compute
     marblWrapper.surfaceFluxCompute(columnTracers, dt);
-    computeTime += s.elapsed();
+    surfaceComputeTime += s.elapsed();
     s.restart();
 
     // Set interior tendency forcing values
@@ -228,13 +229,13 @@ for i in 1..numRuns {
     
     marblWrapper.setTracers(columnTracers);
 
-    interiorTendencyTime += s.elapsed();
+    interiorSettingTime += s.elapsed();
    
     s.restart();
     // Run interior tendency compute
     marblWrapper.interiorTendencyCompute(columnTracers, dt);
     
-    computeTime += s.elapsed();
+    interiorComputeTime += s.elapsed();
     s.restart();
     // Copy the calculated values back into the global tracer array
     //tracerArray[colIdx,..,..] = columnTracers[..,..];
@@ -246,5 +247,7 @@ for i in 1..numRuns {
 
 }
 
-var values = [numRuns:string, ioTime:string,  settingsTime: string, initTime: string, surfaceFluxTime: string, interiorTendencyTime: string,computeTime: string];
+var values = [numRuns:string, ioTime:string,  configTime: string, initTime: string, 
+              surfaceSettingTime: string, surfaceComputeTime: string, 
+              interiorSettingTime: string,interiorComputeTime: string];
 writeln("Chapel,", ",".join(values));

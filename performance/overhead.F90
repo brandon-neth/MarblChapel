@@ -17,9 +17,11 @@ program overhead_fortran
   integer :: num_runs, istat, i
   character(len=10) :: arg
   character(len=10) :: run_num
-  real :: time_io, time_init, time_compute
+  real :: time_io, time_init, time_compute_surface, time_compute_interior, &
+          time_config, time_setting_interior, time_setting_surface
   integer ::a,b
-  character(len=20) :: str_io, str_init, str_compute, str_setting, str_num_runs, str_interior, str_surface, str_config
+  character(len=20) :: str_io, str_init, str_compute_surface, str_compute_interior, &
+                       str_num_runs, str_setting_interior, str_setting_surface, str_config
   ! Get the first command-line argument
   call get_command_argument(1, arg)
 
@@ -34,10 +36,10 @@ program overhead_fortran
 
   time_io = 0
   time_init = 0
-  time_compute = 0
-  time_setting = 0
-  time_interior = 0
-  time_surface = 0
+  time_setting_surface = 0
+  time_setting_interior = 0
+  time_compute_interior = 0
+  time_compute_surface = 0
   time_config = 0
 
 
@@ -52,8 +54,9 @@ program overhead_fortran
     time_config = time_config + elapsed
     write(run_num, '(I5)') i
     hist_file = trim(run_num) // trim(hist_file_base)
-    call test(marbl_instances, hist_file, unit_system_opt, driver_status_log, time_io, time_init, time_compute, &
-              time_surface, time_interior, interior, surface)
+    call test(marbl_instances, hist_file, unit_system_opt, driver_status_log, &
+      time_io, time_init, time_setting_surface, time_setting_interior, &
+      time_compute_surface, time_compute_interior, interior, surface)
     
     deallocate(marbl_instances)
 
@@ -61,15 +64,16 @@ program overhead_fortran
 
   write(str_io, '(F7.4)') time_io
   write(str_init, '(F7.4)') time_init
-  write(str_compute, '(F7.4)') time_compute
-
-  write(str_interior, '(F7.4)') time_interior
-  write(str_surface, '(F7.4)') time_surface
+  write(str_setting_interior, '(F7.4)') time_setting_interior
+  write(str_setting_surface, '(F7.4)') time_setting_surface
+  write(str_compute_interior, '(F7.4)') time_compute_interior
+  write(str_compute_surface, '(F7.4)') time_compute_surface
   write(str_config, '(F7.4)') time_config
   write(str_num_runs, '(I0)') num_runs
   WRITE(0,*) 'interior and surface to make the compute happen:', interior, surface
 
   write(*,'(A)') 'Fortran,' // trim(str_num_runs) // ',' // trim(str_io) // ',' //  trim(str_config) // ',' //  &
-    trim(str_init) // ',' // trim(str_surface) // ',' // trim(str_interior) // ',' // trim(str_compute)
+    trim(str_init) // ',' // trim(str_setting_surface) // ',' // trim(str_compute_surface) // ',' // &
+    trim(str_setting_interior) // ',' // trim(str_compute_interior)
   
 end program overhead_fortran
