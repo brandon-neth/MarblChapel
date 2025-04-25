@@ -19,7 +19,7 @@ program overhead_fortran
   character(len=10) :: run_num
   real :: time_io, time_init, time_compute
   integer ::a,b
-  character(len=20) :: str_io, str_init, str_compute, str_setting, str_num_runs
+  character(len=20) :: str_io, str_init, str_compute, str_setting, str_num_runs, str_interior, str_surface, str_config
   ! Get the first command-line argument
   call get_command_argument(1, arg)
 
@@ -36,17 +36,24 @@ program overhead_fortran
   time_init = 0
   time_compute = 0
   time_setting = 0
+  time_interior = 0
+  time_surface = 0
+  time_config = 0
 
 
   do i = 1,num_runs
     allocate(marbl_instances(num_inst))
+    call system_clock(count_start, count_rate)
     do n =1,num_inst
       call marbl_io_read_settings_file(settings_file, marbl_instances(n))
     end do
+    call system_clock(count_end, count_rate)
+    elapsed = (count_end - count_start) / real(count_rate)
+    time_config = time_config + elapsed
     write(run_num, '(I5)') i
     hist_file = trim(run_num) // trim(hist_file_base)
     call test(marbl_instances, hist_file, unit_system_opt, driver_status_log, time_io, time_init, time_compute, &
-              time_setting, interior, surface)
+              time_surface, time_interior, interior, surface)
     
     deallocate(marbl_instances)
 
@@ -55,11 +62,14 @@ program overhead_fortran
   write(str_io, '(F7.4)') time_io
   write(str_init, '(F7.4)') time_init
   write(str_compute, '(F7.4)') time_compute
-  write(str_setting, '(F7.4)') time_setting
+
+  write(str_interior, '(F7.4)') time_interior
+  write(str_surface, '(F7.4)') time_surface
+  write(str_config, '(F7.4)') time_config
   write(str_num_runs, '(I0)') num_runs
   WRITE(0,*) 'interior and surface to make the compute happen:', interior, surface
 
-  write(*,'(A)') 'Fortran,' // trim(str_num_runs) // ',' // trim(str_io) // ',' // trim(str_init) // ',' // &
-    trim(str_setting) // ',' // trim(str_compute)
+  write(*,'(A)') 'Fortran,' // trim(str_num_runs) // ',' // trim(str_io) // ',' //  trim(str_config) // ',' //  &
+    trim(str_init) // ',' // trim(str_surface) // ',' // trim(str_interior) // ',' // trim(str_compute)
   
 end program overhead_fortran

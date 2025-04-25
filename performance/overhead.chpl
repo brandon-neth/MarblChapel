@@ -6,7 +6,9 @@ var s: stopwatch;
 var ioTime: real;
 var initTime: real;
 var computeTime: real;
-var settingTime: real;
+var settingsTime: real;
+var surfaceFluxTime: real;
+var interiorTendencyTime: real;
 config const numRuns = 1;
 use Marbl;
 use CTypes;
@@ -171,7 +173,7 @@ for i in 1..numRuns {
   
 
   for colIdx_ in tracerArrayDomain.dim[0] {
-    s.restart();
+    
     var colIdx = colIdx_ : int;
     var columnTracers: [1..nt, 1..nz] c_double = tracerArray[colIdx,..,..];
     
@@ -182,8 +184,10 @@ for i in 1..numRuns {
     var numParSubcols = columnFraction[colIdx,..].size;  
     var numElementsSurfaceFlux = 5;
 
-
+    s.restart();
     marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
+    settingsTime += s.elapsed();
+    s.restart();
     marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]);
     initTime += s.elapsed();
     s.restart();
@@ -202,7 +206,7 @@ for i in 1..numRuns {
 
     //Copy surface tracers
     marblWrapper.setSurfaceTracers(columnTracers);
-    settingTime += s.elapsed();
+    surfaceFluxTime += s.elapsed();
     s.restart();
     // Run surface flux compute
     marblWrapper.surfaceFluxCompute(columnTracers, dt);
@@ -221,13 +225,11 @@ for i in 1..numRuns {
     marblWrapper.setInteriorTendencyForcingArray("Pressure", pressure[colIdx,..], activeLevelCount[colIdx]);
     marblWrapper.setInteriorTendencyForcingArray("O2 Consumption Scale Factor", o2Factor[colIdx,..], activeLevelCount[colIdx]);
     marblWrapper.setInteriorTendencyForcingArray("Iron Sediment Flux", scaledIronSed[colIdx,..], activeLevelCount[colIdx]);
-    var interiorTime = s.elapsed();
-    // Copy interior tracer values
+    
     marblWrapper.setTracers(columnTracers);
-    var tracerTime = s.elapsed() - interiorTime;
-    settingTime += s.elapsed();
-    writeln("Interior setting time: ", interiorTime);
-    writeln("Tracer setting time: ", tracerTime);
+
+    interiorTendencyTime += s.elapsed();
+   
     s.restart();
     // Run interior tendency compute
     marblWrapper.interiorTendencyCompute(columnTracers, dt);
@@ -244,5 +246,5 @@ for i in 1..numRuns {
 
 }
 
-var values = [numRuns:string, ioTime:string, initTime: string, settingTime: string, computeTime: string];
+var values = [numRuns:string, ioTime:string,  settingsTime: string, initTime: string, surfaceFluxTime: string, interiorTendencyTime: string,computeTime: string];
 writeln("Chapel,", ",".join(values));
