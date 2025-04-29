@@ -31,6 +31,9 @@ void compute_surface_fluxes(struct marblInteropType * interop_obj);
 void update_surface_fluxes(struct marblInteropType * interop_obj, 
   int * nt, int * nz, double * tracer_array, double * dt);
 
+void set_interior_tendency_forcings(struct marblInteropType *interop_obj, 
+  double * interior_tendency_forcings, int * extent, int * num_forcings, int * forcing_sizes);
+
 void set_interior_tendency_forcing_array(struct marblInteropType * interop_obj, 
   const char * variable_name, int* vn_len, double * data, int * num_elements);
 

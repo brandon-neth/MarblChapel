@@ -236,6 +236,40 @@ module MarblChapel
     end do
   end subroutine update_surface_fluxes
 
+  subroutine set_interior_tendency_forcings(interop_obj, &
+    interior_tendency_forcings, extent, num_forcings, forcing_sizes) &
+    bind(C, name='set_interior_tendency_forcings')
+    ! This subroutine sets the interior tendency forcing values in the MARBL instance as a single array
+    ! It assumes that the inner dimension of the array is the data for a specific forcing value
+    ! And that the outer dimension is the forcing values, and are in the same order that MARBL expects.
+
+    implicit none
+    ! Parameters
+    integer(c_int), intent(in) :: extent, num_forcings
+    type(marblInteropType), intent(inout) :: interop_obj
+    real(c_double), intent(in) :: interior_tendency_forcings(extent, num_forcings)
+    integer(c_int), intent(in) :: forcing_sizes(num_forcings)
+    !Local Variables
+    type(marbl_interface_class), pointer :: marbl_instance
+    integer :: m, n, num_elements
+
+    ! Get the pointer to the marbl instance
+    call c_f_pointer(interop_obj%marbl_obj, marbl_instance)
+
+    ! Copy in the forcing values
+    do m=1, size(marbl_instance%interior_tendency_forcings)
+      num_elements = forcing_sizes(m)
+      if (associated(marbl_instance%interior_tendency_forcings(m)%field_0d)) then
+        marbl_instance%interior_tendency_forcings(m)%field_0d(1) = &
+              interior_tendency_forcings(1,m)
+      else
+        marbl_instance%interior_tendency_forcings(m)%field_1d(1:num_elements,1) = &
+              interior_tendency_forcings(1:num_elements,m)
+      end if
+    end do
+  
+  end subroutine set_interior_tendency_forcings
+
   subroutine set_interior_tendency_forcing_array(interop_obj, variable_name, &
     vn_len, data, num_elements) bind(C, name='set_interior_tendency_forcing_array')
     ! This subroutine sets an interior tendency forcing vector.
