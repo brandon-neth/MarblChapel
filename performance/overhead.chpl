@@ -268,4 +268,4 @@ for colIdx in 1..numColumns {
 var values = [numRuns:string, ioTime:string,  configTime: string, initTime: string, 
               surfaceSettingTime: string, surfaceComputeTime: string, 
               interiorSettingTime: string,interiorComputeTime: string];
-writeln("SingleCopyChapel,", ",".join(values));
+writeln("Chapel,", ",".join(values));

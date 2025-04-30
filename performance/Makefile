@@ -37,7 +37,7 @@ chapel-overhead.exe: overhead.chpl
 
 
 memcpy-overhead.exe: memcpy-overhead.chpl
-	chpl -lgfortran -L$(fortran_lib_path) -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu ../Marbl/MarblChapel.o $< -o $@ --ccflags -fPIE -M../Marbl --fast
+	chpl -lgfortran -L$(fortran_lib_path) -I$(marbl_mod_path) -L$(marbl_lib_path) -lmarbl-gnu ../Marbl/MarblChapel.o $< -o $@ --ccflags -fPIE -M../Marbl --fast --savec c-code-memcpy
 
 
 scaling.exe: scaling.chpl

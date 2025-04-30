@@ -360,7 +360,8 @@ Contains
       end do
       call system_clock(count_end)
       elapsed = real(count_end - count_start) / real(count_rate)
-      time_copyback = time_copyback + elapsed
+      !untracked = untracked + elapsed
+      ! the above might be considered as part of the compute steps
     end do ! instance
     
     ! --------------------------------------------------------------------------

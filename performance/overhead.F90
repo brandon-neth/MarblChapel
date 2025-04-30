@@ -41,6 +41,7 @@ program overhead_fortran
   time_setting_interior = 0
   time_compute_interior = 0
   time_compute_surface = 0
+  time_copyback = 0
   time_config = 0
 
   allocate(marbl_instances(num_inst,num_runs))
