@@ -1,5 +1,5 @@
-// Full test of MARBL interop using a single MARBL instance.
-use Time;
+
+use Time, BlockDist;
 
 
 var ioTime: real;
@@ -8,6 +8,7 @@ var computeTime: real;
 var settingTime: real;
 var marblTime: real;
 config const numRuns = 1;
+var s: stopwatch;
 use Marbl;
 use CTypes;
 use AllLocalesBarriers;
@@ -71,8 +72,29 @@ module myNetCDF {
 }
 use myNetCDF;
 
+const ncPath = "call_compute_subroutines.20190718.nc";
+var numColumns = readDim(ncPath, "column");
+
+// Create the distributed domain
+
+const D = {1..numColumns:int, 1..numRuns};
+var myLocales = reshape(Locales, {0..0, 0..<numLocales});
+const marblDist = new blockDist(boundingBox=D, targetLocales=myLocales);
+const marblDomain = marblDist.createDomain(D);
 
 
+
+// Create the distributed array of interop objects
+s.restart();
+var marblWrappers: [marblDomain] marblInteropType;
+marblTime += s.elapsed();
+
+// Update the settings
+s.restart();
+forall marblWrapper in marblWrappers {
+  marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
+}
+marblTime += s.elapsed();
 
 
 
@@ -165,67 +187,53 @@ coforall loc in Locales with (+reduce marblTime) do on loc  {
     tracerArray[c,t,z] = tracerData[t,c,z];
   }
   
+
   allLocalesBarrier.barrier();
   if here.id == 0 {
     s.restart();
   }
 
-  for i in 1..numRuns {
+  forall (colIdx, i) in marblWrappers.domain.localSubdomain() {
+    var numParSubcols = columnFraction[colIdx,..].size;  
+    var numElementsSurfaceFlux = 5; 
+    var columnTracers: [1..nt, 1..nz] c_double = tracerArray[colIdx,..,..];
+    var marblWrapper = marblWrappers[colIdx,i];
 
-    var marblWrappers: [1..numColumns] marblInteropType;
-    forall colIdx_ in tracerArrayDomain.dim[0] {
-      var colIdx = colIdx_ : int;
-      var columnTracers: [1..nt, 1..nz] c_double = tracerArray[colIdx,..,..];
-      
-      // Initialize and verify it connects to something on the Fortran side
-      var marblWrapper = marblWrappers[colIdx];
-      assert(marblWrapper.marbl_obj:int != 0);
-      
-      var numParSubcols = columnFraction[colIdx,..].size;  
-      var numElementsSurfaceFlux = 5;
+    marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]);
 
+    marblWrapper.setSurfaceFluxForcingValue("sss", salinity[colIdx, 1]);
+    marblWrapper.setSurfaceFluxForcingValue("sst", temperature[colIdx, 1]);
+    marblWrapper.setSurfaceFluxForcingValue("u10_sqr", u10_sqr[colIdx]);
+    marblWrapper.setSurfaceFluxForcingValue("xco2", atm_co2[colIdx]);
+    marblWrapper.setSurfaceFluxForcingValue("xco2_alt_co2", atm_alt_co2[colIdx]);
+    marblWrapper.setSurfaceFluxForcingValue("Atmospheric Pressure", atm_pressure[colIdx]);
+    marblWrapper.setSurfaceFluxForcingValue("Dust Flux", dust_flux[colIdx]);
+    marblWrapper.setSurfaceFluxForcingValue("Iron Flux", iron_flux[colIdx]);
+    marblWrapper.setSurfaceFluxForcingValue("NOx Flux", nox_flux[colIdx]);
+    marblWrapper.setSurfaceFluxForcingValue("NHy Flux", nhy_flux[colIdx]);
 
-      marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
-      marblWrapper.initMarblInstance(nz, numParSubcols, 5, delta_z, zw, ztCol, activeLevelCount[colIdx]);
-      
-      // Set surface flux forcing
-      marblWrapper.setSurfaceFluxForcingValue("sss", salinity[colIdx, 1]);
-      marblWrapper.setSurfaceFluxForcingValue("sst", temperature[colIdx, 1]);
-      marblWrapper.setSurfaceFluxForcingValue("u10_sqr", u10_sqr[colIdx]);
-      marblWrapper.setSurfaceFluxForcingValue("xco2", atm_co2[colIdx]);
-      marblWrapper.setSurfaceFluxForcingValue("xco2_alt_co2", atm_alt_co2[colIdx]);
-      marblWrapper.setSurfaceFluxForcingValue("Atmospheric Pressure", atm_pressure[colIdx]);
-      marblWrapper.setSurfaceFluxForcingValue("Dust Flux", dust_flux[colIdx]);
-      marblWrapper.setSurfaceFluxForcingValue("Iron Flux", iron_flux[colIdx]);
-      marblWrapper.setSurfaceFluxForcingValue("NOx Flux", nox_flux[colIdx]);
-      marblWrapper.setSurfaceFluxForcingValue("NHy Flux", nhy_flux[colIdx]);
+    //Copy surface tracers
+    marblWrapper.setSurfaceTracers(columnTracers);
+    // Run surface flux compute
+    marblWrapper.surfaceFluxCompute(columnTracers, dt);
 
-      //Copy surface tracers
-      marblWrapper.setSurfaceTracers(columnTracers);
-      // Run surface flux compute
-      marblWrapper.surfaceFluxCompute(columnTracers, dt);
-
-      // Set interior tendency forcing values
-      
-      var scaledSalinity = salinity * 1.0e3;
-      var scaledIronSed = iron_sed_flux * 0.01;
-      marblWrapper.setInteriorTendencyForcingScalar("Dust Flux", dust_flux[colIdx]);
-      marblWrapper.setInteriorTendencyForcingArray("Potential Temperature", temperature[colIdx,..]);
-      marblWrapper.setInteriorTendencyForcingArray("Salinity", scaledSalinity[colIdx,..]);
-      marblWrapper.setInteriorTendencyForcingArray("Surface Shortwave", surfaceShortwave[colIdx,..]);
-      marblWrapper.setInteriorTendencyForcingArray("PAR Column Fraction", columnFraction[colIdx,..]);
-      marblWrapper.setInteriorTendencyForcingArray("Pressure", pressure[colIdx,..], activeLevelCount[colIdx]);
-      marblWrapper.setInteriorTendencyForcingArray("O2 Consumption Scale Factor", o2Factor[colIdx,..], activeLevelCount[colIdx]);
-      marblWrapper.setInteriorTendencyForcingArray("Iron Sediment Flux", scaledIronSed[colIdx,..], activeLevelCount[colIdx]);
+    // Set interior tendency forcing values
     
-      // Copy interior tracer values
-      marblWrapper.setTracers(columnTracers);
-      // Run interior tendency compute
-      marblWrapper.interiorTendencyCompute(columnTracers, dt);
-      
-      // Copy the calculated values back into the global tracer array
-      //tracerArray[colIdx,..,..] = columnTracers[..,..];
-    }
+    var scaledSalinity = salinity * 1.0e3;
+    var scaledIronSed = iron_sed_flux * 0.01;
+    marblWrapper.setInteriorTendencyForcingScalar("Dust Flux", dust_flux[colIdx]);
+    marblWrapper.setInteriorTendencyForcingArray("Potential Temperature", temperature[colIdx,..]);
+    marblWrapper.setInteriorTendencyForcingArray("Salinity", scaledSalinity[colIdx,..]);
+    marblWrapper.setInteriorTendencyForcingArray("Surface Shortwave", surfaceShortwave[colIdx,..]);
+    marblWrapper.setInteriorTendencyForcingArray("PAR Column Fraction", columnFraction[colIdx,..]);
+    marblWrapper.setInteriorTendencyForcingArray("Pressure", pressure[colIdx,..], activeLevelCount[colIdx]);
+    marblWrapper.setInteriorTendencyForcingArray("O2 Consumption Scale Factor", o2Factor[colIdx,..], activeLevelCount[colIdx]);
+    marblWrapper.setInteriorTendencyForcingArray("Iron Sediment Flux", scaledIronSed[colIdx,..], activeLevelCount[colIdx]);
+  
+    // Copy interior tracer values
+    marblWrapper.setTracers(columnTracers);
+    // Run interior tendency compute
+    marblWrapper.interiorTendencyCompute(columnTracers, dt);
   }
 
   allLocalesBarrier.barrier();

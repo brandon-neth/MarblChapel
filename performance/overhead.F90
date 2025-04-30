@@ -18,10 +18,11 @@ program overhead_fortran
   character(len=10) :: arg
   character(len=10) :: run_num
   real :: time_io, time_init, time_compute_surface, time_compute_interior, &
-          time_config, time_setting_interior, time_setting_surface
+          time_config, time_setting_interior, time_setting_surface, time_copyback
   integer ::a,b
   character(len=20) :: str_io, str_init, str_compute_surface, str_compute_interior, &
-                       str_num_runs, str_setting_interior, str_setting_surface, str_config
+                       str_num_runs, str_setting_interior, str_setting_surface, str_config, &
+                       str_copyback
   ! Get the first command-line argument
   call get_command_argument(1, arg)
 
@@ -56,7 +57,7 @@ program overhead_fortran
 
     call test(marbl_instances(:,i), hist_file, unit_system_opt, driver_status_log, &
       time_io, time_init, time_setting_surface, time_setting_interior, &
-      time_compute_surface, time_compute_interior, interior, surface)
+      time_compute_surface, time_compute_interior, time_copyback, interior, surface)
     
  
 
@@ -69,11 +70,12 @@ program overhead_fortran
   write(str_compute_interior, '(F7.4)') time_compute_interior
   write(str_compute_surface, '(F7.4)') time_compute_surface
   write(str_config, '(F7.4)') time_config
+  write(str_copyback, '(F7.4)') time_copyback
   write(str_num_runs, '(I0)') num_runs
   WRITE(0,*) 'interior and surface to make the compute happen:', interior, surface
 
   write(*,'(A)') 'Fortran,' // trim(str_num_runs) // ',' // trim(str_io) // ',' //  trim(str_config) // ',' //  &
     trim(str_init) // ',' // trim(str_setting_surface) // ',' // trim(str_compute_surface) // ',' // &
-    trim(str_setting_interior) // ',' // trim(str_compute_interior)
+    trim(str_setting_interior) // ',' // trim(str_compute_interior) // ',' // trim(str_copyback)
   
 end program overhead_fortran
