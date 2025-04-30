@@ -428,6 +428,13 @@ module Marbl {
     const ref nt: c_int, const ref nz: c_int, tracer_array: c_ptr(c_double),
     const ref dt: c_double);
 
+  extern proc set_surface_flux_forcings(const ref interop_obj: marblInteropType,
+    surface_flux_forcings: c_ptr(c_double), const ref num_forcing: c_int);
+    
+  extern proc set_interior_tendency_forcings(const ref interop_obj: marblInteropType,
+    interior_tendency_forcings: c_ptr(c_double), 
+    const ref extent: c_int, const ref num_forcing: c_int, forcing_sizes: c_ptr(c_int));
+
   extern proc set_interior_tendency_forcing_array(const ref interop_obj: marblInteropType,
     variable_name: c_ptrConst(c_char), const ref vn_len: c_int,
     data: c_ptr(c_double), const ref num_elements: c_int);

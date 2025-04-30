@@ -144,8 +144,13 @@ var surfaceShortwave = readVar(ncPath, "QSW_BIN", c_double, 2);
 var o2Factor = readVar(ncPath, "o2_consumption_scalef", c_double, 2);
 var columnFraction = readVar(ncPath, "FRACR_BIN", c_double, 2);
 
+var interiorForcing: [1..5, 1..8, 1..60] c_double;
 var scaledSalinity = salinity * 1.0e3;
 var scaledIronSed = iron_sed_flux * 0.01;
+var forcingSizes: [1..8] c_int; 
+//marblWrapper.setInteriorTendencyForcingScalar("Dust Flux", dust_flux[colIdx]);
+interiorForcing[..,1,1] = dust_flux[..];
+forcingSizes[1] = 1;
 
 
 
@@ -172,21 +177,17 @@ for (c,t,z) in tracerArrayDomain {
 }
 ioTime += s.elapsed();
 
-// Set up the MARBL wrapper, include in initTime, even though there is not 
-// a corresponding part in the Fortran code
 s.restart();
 var marblWrappers: [1..(numColumns:int), 1..numRuns] marblInteropType;
 initTime += s.elapsed();
-
-// Read the settings file
 s.restart();
-for marblWrapper in marblWrappers {
-  marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
-}
-configTime += s.elapsed();
 
-// Set up the MARBL instances with their geometries. This is what
-// is timed against in the Fortran code
+for marblWrapper in marblWrappers {
+  s.restart();
+  marblWrapper.importSettings("marbl_with_o2_consumption_scalef.settings");
+  configTime += s.elapsed();
+}
+
 s.restart();
 for (colIdx,i) in marblWrappers.domain {
     var marblWrapper = marblWrappers[colIdx,i];
@@ -206,43 +207,76 @@ for i in 1..numRuns {
 
     
     
-    s.restart();
-    // Set surface flux forcing
-    marblWrapper.setSurfaceFluxForcingValue("sss", salinity[colIdx, 1]);
-    marblWrapper.setSurfaceFluxForcingValue("sst", temperature[colIdx, 1]);
-    marblWrapper.setSurfaceFluxForcingValue("u10_sqr", u10_sqr[colIdx]);
-    marblWrapper.setSurfaceFluxForcingValue("xco2", atm_co2[colIdx]);
-    marblWrapper.setSurfaceFluxForcingValue("xco2_alt_co2", atm_alt_co2[colIdx]);
-    marblWrapper.setSurfaceFluxForcingValue("Atmospheric Pressure", atm_pressure[colIdx]);
-    marblWrapper.setSurfaceFluxForcingValue("Dust Flux", dust_flux[colIdx]);
-    marblWrapper.setSurfaceFluxForcingValue("Iron Flux", iron_flux[colIdx]);
-    marblWrapper.setSurfaceFluxForcingValue("NOx Flux", nox_flux[colIdx]);
-    marblWrapper.setSurfaceFluxForcingValue("NHy Flux", nhy_flux[colIdx]);
 
-    //Copy surface tracers
+    // Prepare surface flux forcing array. This corresponds to an 
+    // IO step within the Fortran program
+    s.restart();
+    var surfaceFluxForcings: [1..11] c_double;
+    surfaceFluxForcings[1] = u10_sqr[colIdx];
+    surfaceFluxForcings[2] = salinity[colIdx, 1];
+    surfaceFluxForcings[3] = temperature[colIdx, 1];
+    surfaceFluxForcings[4] = 0; // Ice Fraction
+    surfaceFluxForcings[5] = atm_pressure[colIdx];
+    surfaceFluxForcings[6] = atm_co2[colIdx];
+    surfaceFluxForcings[7] = atm_alt_co2[colIdx];
+    surfaceFluxForcings[8] = dust_flux[colIdx];
+    surfaceFluxForcings[9] = iron_flux[colIdx];
+    surfaceFluxForcings[10] = nox_flux[colIdx];
+    surfaceFluxForcings[11] = nhy_flux[colIdx];
+    ioTime += s.elapsed();
+
+    // Actually set the forcing values and tracers
+    s.restart();
+    set_surface_flux_forcings(marblWrapper, c_ptrTo(surfaceFluxForcings), 11:c_int);
     marblWrapper.setSurfaceTracers(columnTracers);
     surfaceSettingTime += s.elapsed();
-    s.restart();
+
+
     // Run surface flux compute
+    s.restart();
     marblWrapper.surfaceFluxCompute(columnTracers, dt);
     surfaceComputeTime += s.elapsed();
 
 
-
-  // Set interior tendency forcing values
+    // Prepare the interior tendency forcing array. This corresponds to an
+    // IO step within the Fortran program
     s.restart();
-    marblWrapper.setInteriorTendencyForcingScalar("Dust Flux", dust_flux[colIdx]);
-    marblWrapper.setInteriorTendencyForcingArray("PAR Column Fraction", columnFraction[colIdx,..]);
-    marblWrapper.setInteriorTendencyForcingArray("Surface Shortwave", surfaceShortwave[colIdx,..]);
-    marblWrapper.setInteriorTendencyForcingArray("Potential Temperature", temperature[colIdx,..]);
-    marblWrapper.setInteriorTendencyForcingArray("Salinity", scaledSalinity[colIdx,..]);
-    marblWrapper.setInteriorTendencyForcingArray("Pressure", pressure[colIdx,..], activeLevelCount[colIdx]);
-    marblWrapper.setInteriorTendencyForcingArray("Iron Sediment Flux", scaledIronSed[colIdx,..], activeLevelCount[colIdx]);
-    marblWrapper.setInteriorTendencyForcingArray("O2 Consumption Scale Factor", o2Factor[colIdx,..], activeLevelCount[colIdx]);
+    var interiorForcing: [1..8, 1..temperature.shape[1]] c_double;
+    var forcingSizes: [1..8] c_int; 
+    //marblWrapper.setInteriorTendencyForcingScalar("Dust Flux", dust_flux[colIdx]);
+    interiorForcing[1,1] = dust_flux[colIdx];
+    forcingSizes[1] = 1;
+        // Set interior tendency forcing values
+        //marblWrapper.setInteriorTendencyForcingArray("PAR Column Fraction", columnFraction[colIdx,..]);
+    interiorForcing[2,1..columnFraction[colIdx,..].size] = columnFraction[colIdx,..];
+    forcingSizes[2] = columnFraction[colIdx,..].size:c_int;
+    //marblWrapper.setInteriorTendencyForcingArray("Surface Shortwave", surfaceShortwave[colIdx,..]);
+    interiorForcing[3,1..surfaceShortwave[colIdx,..].size] = surfaceShortwave[colIdx,..];
+    forcingSizes[3] = surfaceShortwave[colIdx,..].size:c_int;
+    //marblWrapper.setInteriorTendencyForcingArray("Potential Temperature", temperature[colIdx,..]);
+    interiorForcing[4,..] = temperature[colIdx,..];
+    forcingSizes[4] = temperature[colIdx,..].size:c_int;
+
+    //marblWrapper.setInteriorTendencyForcingArray("Salinity", scaledSalinity[colIdx,..]);
+    interiorForcing[5,1..scaledSalinity[colIdx,..].size] = scaledSalinity[colIdx,..];
+    forcingSizes[5] = scaledSalinity[colIdx,..].size:c_int;
+    //marblWrapper.setInteriorTendencyForcingArray("Pressure", pressure[colIdx,..], activeLevelCount[colIdx]);
+    interiorForcing[6,1..activeLevelCount[colIdx]] = pressure[colIdx,1..activeLevelCount[colIdx]];
+    forcingSizes[6] = activeLevelCount[colIdx]:c_int;
+    //marblWrapper.setInteriorTendencyForcingArray("Iron Sediment Flux", scaledIronSed[colIdx,..], activeLevelCount[colIdx]);
+    interiorForcing[7,1..activeLevelCount[colIdx]] = scaledIronSed[colIdx,1..activeLevelCount[colIdx]];
+    forcingSizes[7] = activeLevelCount[colIdx]:c_int;
+    //marblWrapper.setInteriorTendencyForcingArray("O2 Consumption Scale Factor", o2Factor[colIdx,..], activeLevelCount[colIdx]);
+    interiorForcing[8,1..activeLevelCount[colIdx]] = o2Factor[colIdx,1..activeLevelCount[colIdx]];
+    forcingSizes[8] = activeLevelCount[colIdx]:c_int;
+    ioTime += s.elapsed();
     
+    
+    // Set the interior tendency forcing values and tracers
+    s.restart();
+    set_interior_tendency_forcings(marblWrapper, c_ptrTo(interiorForcing), interiorForcing.shape[1]: c_int, interiorForcing.shape[0]: c_int, c_ptrTo(forcingSizes));
     marblWrapper.setTracers(columnTracers);
     interiorSettingTime += s.elapsed();
-    
     
     // Run interior tendency compute
     s.restart();
@@ -268,4 +302,4 @@ for colIdx in 1..numColumns {
 var values = [numRuns:string, ioTime:string,  configTime: string, initTime: string, 
               surfaceSettingTime: string, surfaceComputeTime: string, 
               interiorSettingTime: string,interiorComputeTime: string];
-writeln("Chapel,", ",".join(values));
+writeln("SingleCopyChapel,", ",".join(values));

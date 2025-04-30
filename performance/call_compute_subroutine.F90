@@ -19,7 +19,7 @@ Contains
 
   subroutine test(marbl_instances, hist_file, unit_system_opt, driver_status_log, &
     time_io, time_init, time_setting_surface, time_setting_interior, &
-    time_compute_surface, time_compute_interior, interior, surface)
+    time_compute_surface, time_compute_interior, time_copyback, interior, surface)
 
     use marbl_settings_mod, only : output_for_GCM_iopt_total_Chl_3d
 
@@ -39,7 +39,7 @@ Contains
     type(marbl_log_type),                      intent(inout) :: driver_status_log
     real,                                      intent(inout) :: time_io, time_init, time_setting_surface, &
                                                                 time_setting_interior, time_compute_surface, &
-                                                                time_compute_interior
+                                                                time_compute_interior, time_copyback
     real, intent(inout) :: interior(5,60,32), surface(1,32,5)
 
     character(len=*), parameter :: subname = 'marbl_call_compute_subroutines_drv:test'
@@ -82,6 +82,7 @@ Contains
     ! --------------------------------------------------------------------------
 
     
+    call system_clock(count_start, count_rate)
     ! 2. Initialize the test (reads grid info, distributes columns, etc)
     call set_domain(size(marbl_instances), unit_system_opt, num_levels, active_level_cnt, lat, &
                     num_PAR_subcols, col_start, col_cnt, grid_data, driver_status_log)
@@ -91,8 +92,12 @@ Contains
       return
     end if
     num_cols = sum(col_cnt)
-
+    call system_clock(count_end)
+    elapsed = real(count_end - count_start) / real(count_rate)
+    !not in sum
     ! --------------------------------------------------------------------------
+
+
     call system_clock(count_start)
     ! 3. Initialize each instance of MARBL
     do n=1, size(marbl_instances)
@@ -109,9 +114,13 @@ Contains
         return
       end if
     end do
-    
+    call system_clock(count_end)
+    elapsed = real(count_end - count_start) / real(count_rate)
+    time_init = time_init + elapsed
     ! --------------------------------------------------------------------------
 
+
+    call system_clock(count_start)
     ! 4. Set up memory for fields MARBL returns to GCM
     !    Also, request flux_co2, total_surf_Chl, and total_Chl
     !    (a) Fields returned from surface_flux_compute()
@@ -133,8 +142,12 @@ Contains
 
     allocate(surface_flux_output(num_cols, sfo_cnt))
     allocate(total_Chl(num_levels, num_cols))
+    call system_clock(count_end)
+    elapsed = real(count_end - count_start) / real(count_rate)
+    !untracked = untracked + elapsed
 
 
+    
     ! 5. Initialize diagnostic buffers, define diagnostic fields in output netCDF file, and
     !    read initial conditions / forcing data
 
@@ -174,11 +187,8 @@ Contains
             size(marbl_instances(1)%interior_tendency_forcings(m)%field_1d, dim=2)))
       end if
     end do
-    call system_clock(count_end)
-    elapsed = real(count_end - count_start) / real(count_rate)
-    time_init = time_init + elapsed
+
     
-    call system_clock(count_start)
     !    (d) netCDF calls to create history file (dimensions are defined but data is not written)
     !call marbl_io_define_history(marbl_instances, col_cnt, unit_system_opt, driver_status_log)
     if (driver_status_log%labort_marbl) then
@@ -186,6 +196,8 @@ Contains
       print *, "Aborting after failing to create history file"
       return
     end if
+
+    call system_clock(count_start)
     !    (e) Read initial conditions and forcing data
     do n=1, num_cols
       !      (i) Read tracer values over full column
@@ -217,12 +229,16 @@ Contains
     call system_clock(count_end)
     elapsed = real(count_end - count_start) / real(count_rate)
     time_io = time_io + elapsed
+    
+
+
     ! --------------------------------------------------------------------------
     ! Brunt of MARBL computations
     ! --------------------------------------------------------------------------
 
     
     do n=1, size(marbl_instances)
+
       ! 6. Call surface_flux_compute() (all columns simultaneously)
       !    (a) call set_global_scalars() for consistent setting of time-varying scalars
       !        [surface_flux computation doesn't currently have any time-varying scalars]
@@ -259,7 +275,9 @@ Contains
         print *, "Aborting after failing to compute surface fluxes"
         return
       end if
-
+      call system_clock(count_end)
+      time_compute_surface = time_compute_surface + (real(count_end - count_start) / real(count_rate))
+      
       !    (f) write to diagnostic buffers
       !        Note: passing col_start and col_cnt => surface flux diagnostic buffer
       call marbl_io_copy_into_diag_buffer(col_start(n), col_cnt(n), marbl_instances(n))
@@ -268,8 +286,6 @@ Contains
         surface_flux_output((col_start(n)+1):(col_start(n)+col_cnt(n)),output_id) = &
                   marbl_instances(n)%surface_flux_output%outputs_for_GCM(output_id)%forcing_field_0d(:)
       end do
-      call system_clock(count_end)
-      time_compute_surface = time_compute_surface + (real(count_end - count_start) / real(count_rate))
       ! ------------------------------------------------------------------------
 
       ! 7. Call interior_tendency_compute() (one column at a time)
@@ -322,14 +338,15 @@ Contains
           print *, "Aborting after failing to compute interior tendencies"
           return
         end if
-        
+        call system_clock(count_end)
+        time_compute_interior = time_compute_interior + (real(count_end - count_start) / real(count_rate))
+
         !  (h) write to diagnostic buffer
         !        Note: passing just col_id => interior tendency diagnostic buffer
         call marbl_io_copy_into_diag_buffer(col_id, marbl_instances(n))
         interior_tendencies(:,:,col_id) = marbl_instances(n)%interior_tendencies(:,:)
         call marbl_instances(n)%get_output_for_GCM(output_for_GCM_iopt_total_Chl_3d, total_Chl(:,col_id))
-        call system_clock(count_end)
-        time_compute_interior = time_compute_interior + (real(count_end - count_start) / real(count_rate))
+        
       end do ! column
 
       call system_clock(count_start)
@@ -343,10 +360,12 @@ Contains
       end do
       call system_clock(count_end)
       elapsed = real(count_end - count_start) / real(count_rate)
-      time_compute_interior = time_compute_interior + elapsed
+      !untracked = untracked + elapsed
+      ! the above might be considered as part of the compute steps
     end do ! instance
     
     ! --------------------------------------------------------------------------
+
 
     ! 8. Output netCDF
     !call marbl_io_write_history(marbl_instances(1), surface_fluxes, interior_tendencies,  &
